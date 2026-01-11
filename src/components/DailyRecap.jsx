@@ -1,39 +1,64 @@
+import { Trash2 } from 'lucide-react';
 
 export default function DailyRecap({ orders, onClearHistory }) {
-    if (!orders || orders.length === 0) return null;
+    const totalProfit = orders.reduce((acc, order) => acc + order.netProfit, 0);
+    const totalOrders = orders.length;
+
+    const formatCurrency = (value) => new Intl.NumberFormat('id-ID').format(value);
 
     return (
-        <div className="mt-4 px-4">
-            <div className="flex justify-between items-center mb-2">
-                <h3 className="text-primary/80 text-xs font-bold tracking-widest uppercase">Daily Log</h3>
-                <button
-                    onClick={onClearHistory}
-                    className="text-[10px] text-red-500 hover:text-red-400 uppercase tracking-wider"
-                >
-                    Clear History
-                </button>
+        <div className="flex flex-col h-full bg-maxim-bg p-4 space-y-4 pb-24">
+            {/* Summary Card */}
+            <div className="bg-maxim-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
+                        <h2 className="text-3xl font-bold text-maxim-dark mt-1">
+                            <span className="text-sm font-normal text-gray-400 mr-1">Rp</span>
+                            {formatCurrency(totalProfit)}
+                        </h2>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Total Order</p>
+                        <h2 className="text-3xl font-bold text-maxim-dark mt-1">{totalOrders}</h2>
+                    </div>
+                </div>
             </div>
 
-            <div className="bg-black/40 border border-primary/10 rounded overflow-hidden">
-                <div className="grid grid-cols-3 gap-2 px-3 py-2 border-b border-primary/20 bg-primary/5">
-                    <span className="text-[10px] text-primary/60 font-mono">TIME</span>
-                    <span className="text-[10px] text-primary/60 font-mono text-center">NET</span>
-                    <span className="text-[10px] text-primary/60 font-mono text-right">DIST</span>
-                </div>
+            {/* List Header */}
+            <div className="flex justify-between items-center px-2">
+                <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Riwayat Order</h3>
+                {orders.length > 0 && (
+                    <button
+                        onClick={onClearHistory}
+                        className="text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
 
-                <div className="max-h-[150px] overflow-y-auto">
-                    {orders.map((order, index) => (
-                        <div key={index} className="grid grid-cols-3 gap-2 px-3 py-1.5 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                            <span className="text-[10px] text-gray-400 font-mono">{order.time}</span>
-                            <span className={`text-[10px] font-mono font-bold text-center ${order.netProfit > 10000 ? 'text-[#06f906]' :
-                                    order.netProfit < 4000 ? 'text-red-500' : 'text-primary'
-                                }`}>
-                                {(order.netProfit / 1000).toFixed(1)}k
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-mono text-right">{order.distance}km</span>
+            {/* Order List */}
+            <div className="space-y-3">
+                {orders.length === 0 ? (
+                    <div className="text-center py-10 text-gray-400 text-sm">
+                        Belum ada order hari ini.
+                    </div>
+                ) : (
+                    orders.map((order, index) => (
+                        <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                            <div className="flex flex-col">
+                                <span className="text-xs text-gray-400 font-medium mb-0.5">{order.time}</span>
+                                <span className="text-xs font-medium text-gray-300">
+                                    {order.distance} km • {order.commissionRate === 0.1 ? 'Prio' : 'Non-Prio'}
+                                </span>
+                            </div>
+                            <div className={`text-base font-bold ${order.netProfit > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {order.netProfit > 0 ? '+' : ''}{formatCurrency(order.netProfit)}
+                            </div>
                         </div>
-                    ))}
-                </div>
+                    ))
+                )}
             </div>
         </div>
     );

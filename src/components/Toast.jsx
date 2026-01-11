@@ -12,16 +12,12 @@ export default function Toast({ message, isVisible, type = 'success', onClose })
 
     if (!isVisible) return null;
 
-    const bgColor = type === 'success' ? 'bg-primary/20 border-primary' : 'bg-hud-red/20 border-hud-red';
-    const textColor = type === 'success' ? 'text-primary' : 'text-hud-red';
-
     return (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-pulse">
-            <div className={`${bgColor} border px-4 py-3 rounded shadow-lg backdrop-blur-md`}>
-                <p className={`${textColor} text-xs font-bold tracking-wider text-center`}>
-                    {message}
-                </p>
-            </div>
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg border flex items-center gap-2 transition-all duration-300 ${type === 'success' ? 'bg-black text-white border-white/10' :
+                type === 'warning' ? 'bg-yellow-400 text-black border-yellow-500' :
+                    'bg-red-500 text-white border-red-600'
+            }`}>
+            <span className="text-sm font-medium">{message}</span>
         </div>
     );
 }

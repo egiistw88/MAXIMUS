@@ -2,26 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Hexagon Clip Path for HUD elements */
-.hex-shape {
-  clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%);
-}
-
-.hex-marker {
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-
-/* Scanline effect */
-.scanline {
-  background: linear-gradient(
-    to bottom,
-    rgba(255,255,255,0),
-    rgba(255,255,255,0) 50%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0.2)
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
+@layer base {
+  body {
+    @apply bg-maxim-bg text-maxim-dark antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
 }
 
 /* Hide scrollbar but keep scrolling */
@@ -29,24 +14,7 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
-}
-
-/* Radar sweep animation */
-@keyframes radar-sweep {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.radar-sweep {
-  animation: radar-sweep 4s linear infinite;
-}
-
-body {
-  min-height: max(884px, 100dvh);
 }

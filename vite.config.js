@@ -10,11 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt'],
       manifest: {
-        name: 'MAXIMUS PILOT',
+        name: 'MAXIMUS Utility',
         short_name: 'MAXIMUS',
-        description: 'Tactical HUD for Bandung motorcycle couriers',
-        theme_color: '#000000',
-        background_color: '#000000',
+        description: 'Professional Utility for Maxim Drivers',
+        theme_color: '#FFD700',
+        background_color: '#FFFFFF',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -34,11 +34,9 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Cache all assets for offline use
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
-            // Cache Google Fonts
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -53,7 +51,6 @@ export default defineConfig({
             }
           },
           {
-            // Cache Google Fonts stylesheets
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -68,13 +65,12 @@ export default defineConfig({
             }
           },
           {
-            // Cache map images
-            urlPattern: /^https:\/\/lh3\.googleusercontent\.com\/.*/i,
+            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'map-images-cache',
+              cacheName: 'osm-tiles-cache',
               expiration: {
-                maxEntries: 5,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
               cacheableResponse: {
