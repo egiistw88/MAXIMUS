@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ProfitEngine from './components/ProfitEngine';
 import RealMap from './components/RealMap';
+import DailyRecap from './components/DailyRecap';
 import AlertCard from './components/AlertCard';
 import StatusFooter from './components/StatusFooter';
 import Toast from './components/Toast';
@@ -20,9 +21,43 @@ function App() {
     const [isGhostMode, setIsGhostMode] = useState(false);
 
     // Profit Engine state
-    const [dailyGross] = useState(165000);
+    const [dailyGross] = useState(165000); // Kept for reference, but UI will use calculated total
     const [fuelCost] = useState(15000);
     const [serviceCost] = useState(7500);
+
+    // Daily Recap & Order History
+    const [orders, setOrders] = useState(() => {
+        const saved = localStorage.getItem('maximus_orders');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    const [dailyTotal, setDailyTotal] = useState(0);
+
+    useEffect(() => {
+        localStorage.setItem('maximus_orders', JSON.stringify(orders));
+        const total = orders.reduce((acc, order) => acc + order.netProfit, 0);
+        setDailyTotal(total);
+    }, [orders]);
+
+    const handleAddOrder = (order) => {
+        setOrders(prev => [order, ...prev]);
+        setToast({
+            message: `💰 Order Accepted! Profit: ${(order.netProfit / 1000).toFixed(1)}k`,
+            isVisible: true,
+            type: 'success'
+        });
+    };
+
+    const handleClearHistory = () => {
+        if (confirm('Clear today\'s history?')) {
+            setOrders([]);
+            setToast({
+                message: '🗑️ History Cleared',
+                isVisible: true,
+                type: 'warning'
+            });
+        }
+    };
 
     // Alert state
     const [currentAlert, setCurrentAlert] = useState(DEFAULT_ALERT);
@@ -133,13 +168,20 @@ function App() {
                     onGhostToggle={handleGhostToggle}
                     showInstallButton={showInstallButton}
                     onInstallClick={handleInstallClick}
+                    dailyTotal={dailyTotal}
                 />
 
-                {/* Profit Reality Engine */}
                 <ProfitEngine
                     dailyGross={dailyGross}
                     fuelCost={fuelCost}
                     serviceCost={serviceCost}
+                    onAccept={handleAddOrder}
+                />
+
+                {/* Daily Recap */}
+                <DailyRecap
+                    orders={orders}
+                    onClearHistory={handleClearHistory}
                 />
 
                 {/* GVA Radar (Real Map) */}

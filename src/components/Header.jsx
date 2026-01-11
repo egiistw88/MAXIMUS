@@ -1,4 +1,18 @@
-export default function Header({ isGhostMode, onGhostToggle, showInstallButton, onInstallClick }) {
+import { useState, useEffect } from 'react';
+
+export default function Header({ isGhostMode, onGhostToggle, showInstallButton, onInstallClick, dailyTotal }) {
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Format time for the "Realtime" clock in HUD
+    const formatTime = (date) => {
+        return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <div className="flex items-center justify-between p-4 pt-6 bg-background-dark/90 backdrop-blur-md sticky top-0 z-40 border-b border-white/10">
             <div className="flex items-center gap-2">
@@ -8,6 +22,14 @@ export default function Header({ isGhostMode, onGhostToggle, showInstallButton, 
                 </h2>
             </div>
             <div className="flex items-center gap-2">
+                {/* Daily Total Display */}
+                <div className="text-right mr-1">
+                    <p className="text-[10px] text-gray-400 font-mono">DAILY NET</p>
+                    <p className="text-xl font-bold text-primary leading-none tracking-tighter">
+                        {(dailyTotal / 1000).toFixed(1)}k
+                    </p>
+                </div>
+
                 {/* PWA Install Button - only shows when installable */}
                 {showInstallButton && (
                     <button

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function ProfitEngine() {
+export default function ProfitEngine({ onAccept }) {
     // State initialization
     const [orderPrice, setOrderPrice] = useState('');
     const [distance, setDistance] = useState('');
@@ -34,6 +34,28 @@ export default function ProfitEngine() {
         if (netProfit > 10000) return 'text-[#06f906] drop-shadow-[0_0_8px_rgba(6,249,6,0.5)]';
         if (netProfit < 4000) return 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]';
         return 'text-primary';
+    };
+
+    const handleAccept = () => {
+        if (!orderPrice || !distance) return;
+
+        const timestamp = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+        const orderData = {
+            time: timestamp,
+            price: parseFloat(orderPrice),
+            distance: parseFloat(distance),
+            netProfit: netProfit,
+            commissionRate: commissionRate
+        };
+
+        if (onAccept) {
+            onAccept(orderData);
+        }
+
+        // Reset inputs
+        setOrderPrice('');
+        setDistance('');
     };
 
     return (
@@ -109,6 +131,18 @@ export default function ProfitEngine() {
                     <p className="text-xs text-red-400 font-mono">-{maintenance}</p>
                 </div>
             </div>
+
+            {/* Accept Action */}
+            <button
+                onClick={handleAccept}
+                disabled={!orderPrice || !distance}
+                className={`w-full mt-4 py-3 font-bold tracking-widest uppercase transition-all duration-300 ${!orderPrice || !distance
+                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary text-black hover:bg-primary/90 shadow-[0_0_15px_rgba(6,249,6,0.3)]'
+                    }`}
+            >
+                Accept Order
+            </button>
         </div>
     );
 }
