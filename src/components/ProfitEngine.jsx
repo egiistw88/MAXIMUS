@@ -9,22 +9,29 @@ export default function ProfitEngine({ showToast, session }) {
     const { settings } = useSettings();
     const [orderPrice, setOrderPrice] = useState('');
     const [distance, setDistance] = useState('');
-    const [commissionRate, setCommissionRate] = useState(settings.defaultCommission);
+    const [isPriority, setIsPriority] = useState(settings.defaultCommission === 0.10);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Update local commission state if default changes in settings
+    // Update local priority state if default changes in settings
     useEffect(() => {
-        setCommissionRate(settings.defaultCommission);
+        setIsPriority(settings.defaultCommission === 0.10);
     }, [settings.defaultCommission]);
+
+    const quickValues = [5000, 10000, 15000, 20000, 50000];
 
     const gross = parseFloat(orderPrice) || 0;
     const dist = parseFloat(distance) || 0;
-    const appFee = gross * commissionRate;
-    // Use fuel efficiency from settings
+    const currentCommissionRate = isPriority ? 0.10 : 0.15;
+
+    // Gap Fix 1: Real Net Logic
+    const realNet = gross * (1 - currentCommissionRate);
+
+    // Financial Breakdown
+    const appFee = gross * currentCommissionRate;
     const fuelCost = dist * settings.fuelEfficiency;
     const maintenance = settings.maintenanceFee || 500;
-    const netProfit = gross - appFee - fuelCost - maintenance;
+    const estimatedNetProfit = realNet - fuelCost - maintenance;
 
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID').format(value);
 
@@ -44,9 +51,9 @@ export default function ProfitEngine({ showToast, session }) {
                 .insert([
                     {
                         user_id: session.user.id,
-                        price: gross,
+                        price: realNet, // Gap Fix 1: Save Real Net, not raw price
                         distance: dist,
-                        net_profit: netProfit,
+                        net_profit: estimatedNetProfit,
                         // created_at is default now() in DB
                     },
                 ]);
@@ -57,7 +64,7 @@ export default function ProfitEngine({ showToast, session }) {
 
             // Show toast using the prop passed from App
             if (showToast) {
-                showToast(`Order Saved: +${formatCurrency(netProfit)}`);
+                showToast(`Order Saved: +${formatCurrency(estimatedNetProfit)}`);
             }
 
             // Delay clearing inputs to show the success animation
@@ -111,21 +118,23 @@ export default function ProfitEngine({ showToast, session }) {
                 {/* Header Card */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center space-y-2">
                     <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Estimasi Bersih</span>
-                    <div className={`text-4xl font-bold ${netProfit > 0 ? 'text-maxim-dark' : 'text-red-500'}`}>
+                    <div className={`text-4xl font-bold ${estimatedNetProfit > 0 ? 'text-maxim-dark' : 'text-red-500'}`}>
                         <span className="text-lg text-gray-400 font-normal mr-1">Rp</span>
-                        {formatCurrency(Math.max(0, netProfit))}
-                    </div>
-                    <div className="flex items-center space-x-2 mt-2">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${commissionRate === 0.1 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'}`}>
-                            {commissionRate === 0.1 ? 'PRIORITAS' : 'NON-PRIORITAS'}
-                        </span>
+                        {formatCurrency(Math.max(0, estimatedNetProfit))}
                     </div>
                 </div>
 
                 {/* Input Section */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
                     <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">Harga Order (Rp)</label>
+                        <div className="flex justify-between items-end mb-1">
+                            <label className="block text-xs font-medium text-gray-500 uppercase">Harga Order (Rp)</label>
+                            {orderPrice && (
+                                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                    Bersih: Rp {formatCurrency(realNet)}
+                                </span>
+                            )}
+                        </div>
                         <input
                             type="number"
                             value={orderPrice}
@@ -134,7 +143,21 @@ export default function ProfitEngine({ showToast, session }) {
                             className="w-full text-lg p-3 rounded-xl border border-gray-200 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none transition-all"
                             inputMode="numeric"
                         />
+
+                        {/* Gap Fix 2: Quick Chips */}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {quickValues.map((val) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setOrderPrice(val.toString())}
+                                    className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold text-gray-600 active:bg-maxim-yellow active:text-maxim-dark transition-colors"
+                                >
+                                    {val / 1000}k
+                                </button>
+                            ))}
+                        </div>
                     </div>
+
                     <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1 uppercase">Jarak (KM)</label>
                         <input
@@ -147,23 +170,18 @@ export default function ProfitEngine({ showToast, session }) {
                         />
                     </div>
 
-                    {/* Commission Toggle */}
-                    <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm font-medium text-gray-600">Potongan Aplikasi</span>
-                        <div className="flex bg-gray-100 rounded-lg p-1">
-                            <button
-                                onClick={() => setCommissionRate(0.10)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${commissionRate === 0.10 ? 'bg-white shadow-sm text-maxim-dark' : 'text-gray-400'}`}
-                            >
-                                10%
-                            </button>
-                            <button
-                                onClick={() => setCommissionRate(0.15)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${commissionRate === 0.15 ? 'bg-white shadow-sm text-maxim-dark' : 'text-gray-400'}`}
-                            >
-                                15%
-                            </button>
+                    {/* Gap Fix 1: Toggle Switch "Prioritas?" */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                        <div>
+                            <span className="text-sm font-bold text-gray-700">Prioritas?</span>
+                            <p className="text-[10px] text-gray-400">{isPriority ? 'Potongan 10%' : 'Potongan 15%'}</p>
                         </div>
+                        <button
+                            onClick={() => setIsPriority(!isPriority)}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${isPriority ? 'bg-maxim-yellow' : 'bg-gray-200'}`}
+                        >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform transform ${isPriority ? 'translate-x-7' : 'translate-x-1'}`} />
+                        </button>
                     </div>
                 </div>
 
@@ -197,5 +215,6 @@ export default function ProfitEngine({ showToast, session }) {
                 </motion.button>
             </div>
         </>
+
     );
 }

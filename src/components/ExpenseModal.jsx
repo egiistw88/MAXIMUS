@@ -96,6 +96,20 @@ export default function ExpenseModal({ isOpen, onClose, onExpenseAdded, session 
                                         required
                                     />
                                 </div>
+
+                                {/* Gap Fix 2: Quick Chips */}
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {[5000, 10000, 15000, 20000, 50000].map((val) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setAmount(val.toString())}
+                                            className="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 active:bg-red-500 active:text-white transition-colors"
+                                        >
+                                            {val / 1000}k
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Categories */}
@@ -108,8 +122,8 @@ export default function ExpenseModal({ isOpen, onClose, onExpenseAdded, session 
                                             type="button"
                                             onClick={() => setCategory(cat.id)}
                                             className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all ${category === cat.id
-                                                    ? 'border-red-500 bg-red-50 text-red-700'
-                                                    : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                                ? 'border-red-500 bg-red-50 text-red-700'
+                                                : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
                                                 }`}
                                         >
                                             {cat.label}
@@ -135,8 +149,8 @@ export default function ExpenseModal({ isOpen, onClose, onExpenseAdded, session 
                                 type="submit"
                                 disabled={!amount || isSubmitting}
                                 className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center space-x-2 transition-all ${!amount || isSubmitting
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                                        : 'bg-red-500 text-white shadow-red-200 hover:bg-red-600 active:scale-95'
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                    : 'bg-red-500 text-white shadow-red-200 hover:bg-red-600 active:scale-95'
                                     }`}
                             >
                                 {isSubmitting ? (

@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
 import { supabase } from '../lib/supabaseClient';
+import { useSettings } from '../context/SettingsContext';
 
 // --- Custom Icons ---
 
@@ -102,6 +103,7 @@ function StrategyCard({ recommendation }) {
 // --- Main Map Component ---
 
 export default function RealMap() {
+    const { settings } = useSettings();
     const [strategicSpots, setStrategicSpots] = useState([]);
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
@@ -213,7 +215,10 @@ export default function RealMap() {
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    url={settings.darkMode
+                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    }
                 />
 
                 <RecenterFab userPos={userPos} />

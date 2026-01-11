@@ -15,9 +15,12 @@ export const SettingsProvider = ({ children }) => {
     // Initial state with defaults
     const [settings, setSettings] = useState(() => {
         const saved = localStorage.getItem('maximus_settings');
+        const now = new Date();
+        const autoDarkMode = now.getHours() >= 18 || now.getHours() < 6;
+
         if (saved) {
             try {
-                return JSON.parse(saved);
+                return { ...JSON.parse(saved) };
             } catch (e) {
                 console.error('Failed to parse settings', e);
             }
@@ -29,7 +32,7 @@ export const SettingsProvider = ({ children }) => {
             fuelEfficiency: 200, // Rp/KM default for beat/mio
             defaultCommission: 0.15, // 15% non-prioritas
             maintenanceFee: 500, // Default fee
-            darkMode: false
+            darkMode: autoDarkMode // Gap Fix 3: Auto Dark Mode
         };
     });
 
@@ -47,6 +50,15 @@ export const SettingsProvider = ({ children }) => {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Gap Fix 3: Sync Dark Mode with Tailwind
+    useEffect(() => {
+        if (settings.darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [settings.darkMode]);
 
     // Fetch from Supabase when session becomes available
     useEffect(() => {

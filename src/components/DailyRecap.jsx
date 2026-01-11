@@ -148,26 +148,44 @@ export default function DailyRecap({ session }) {
         return { text: "Boros banget hari ini! Kurangi jajan kopi.", color: "text-red-500" };
     };
 
-    const insight = getInsight();
+    const handleDelete = async (id, type) => {
+        if (!confirm('Hapus transaksi ini?')) return;
+
+        try {
+            const table = type === 'income' ? 'orders' : 'expenses';
+            const { error } = await supabase
+                .from(table)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Refresh data immediately
+            fetchData();
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            alert('Gagal menghapus transaksi.');
+        }
+    };
 
     if (loading) {
         return (
-            <div className="flex h-full items-center justify-center bg-gray-50 pb-24">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-maxim-dark"></div>
+            <div className="flex h-full items-center justify-center bg-gray-50 dark:bg-maxim-bg pb-24">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-maxim-dark dark:border-maxim-yellow"></div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full bg-gray-50 pb-24 relative">
+        <div className="flex flex-col h-full bg-gray-50 dark:bg-maxim-bg pb-24 relative">
             {/* Header */}
             <div className="px-5 pt-6 pb-2">
-                <h1 className="text-2xl font-bold text-gray-800">Financial Board</h1>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Financial Board</h1>
                 <p className="text-xs text-gray-400">Liputan Keuangan Bulan Ini</p>
             </div>
 
             {/* Insight Banner */}
-            <div className={`mx-5 mb-4 p-3 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center space-x-3`}>
+            <div className={`mx-5 mb-4 p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center space-x-3`}>
                 <div className={`p-2 rounded-full bg-opacity-10 ${insight.color.replace('text', 'bg')}`}>
                     <AlertCircle className={`w-5 h-5 ${insight.color}`} />
                 </div>
@@ -181,33 +199,33 @@ export default function DailyRecap({ session }) {
                 {/* 1. Summary Cards */}
                 <div className="grid grid-cols-3 gap-3">
                     {/* Income */}
-                    <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-24">
-                        <div className="p-1.5 bg-green-50 rounded-lg w-fit">
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-24">
+                        <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg w-fit">
                             <TrendingUp size={16} className="text-green-600" />
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-400 font-semibold uppercase">Omzet</p>
-                            <p className="text-sm font-bold text-gray-800 truncate">
+                            <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                                 {formatCurrency(metrics.grossIncome)}
                             </p>
                         </div>
                     </div>
 
                     {/* Expense */}
-                    <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-24">
-                        <div className="p-1.5 bg-red-50 rounded-lg w-fit">
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-24">
+                        <div className="p-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg w-fit">
                             <TrendingDown size={16} className="text-red-600" />
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-400 font-semibold uppercase">Keluar</p>
-                            <p className="text-sm font-bold text-gray-800 truncate">
+                            <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                                 {formatCurrency(metrics.actualExpenses)}
                             </p>
                         </div>
                     </div>
 
                     {/* Net Cash */}
-                    <div className="bg-maxim-dark p-3 rounded-2xl shadow-lg border border-gray-800 flex flex-col justify-between h-24 text-white">
+                    <div className="bg-maxim-dark dark:bg-black p-3 rounded-2xl shadow-lg border border-gray-800 dark:border-gray-700 flex flex-col justify-between h-24 text-white">
                         <div className="p-1.5 bg-white/10 rounded-lg w-fit">
                             <Wallet size={16} className="text-maxim-yellow" />
                         </div>
@@ -221,14 +239,14 @@ export default function DailyRecap({ session }) {
                 </div>
 
                 {/* 2. Efficiency Meter */}
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-gray-400 uppercase">Skor Efisiensi</span>
                         <span className={`text-lg font-bold ${metrics.efficiencyScore > 70 ? 'text-green-500' : metrics.efficiencyScore > 50 ? 'text-yellow-500' : 'text-red-500'}`}>
                             {Math.round(metrics.efficiencyScore)}%
                         </span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${Math.min(100, Math.max(0, metrics.efficiencyScore))}%` }}
@@ -239,8 +257,8 @@ export default function DailyRecap({ session }) {
                 </div>
 
                 {/* 3. Performance Chart */}
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 h-64">
-                    <h3 className="text-sm font-bold text-gray-700 mb-4">Grafik 7 Hari Terakhir</h3>
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 h-64">
+                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-4">Grafik 7 Hari Terakhir</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
                             <XAxis
@@ -251,8 +269,14 @@ export default function DailyRecap({ session }) {
                                 dy={10}
                             />
                             <Tooltip
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                cursor={{ fill: '#F3F4F6' }}
+                                contentStyle={{
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                    backgroundColor: settings.darkMode ? '#1F2937' : '#FFFFFF',
+                                    color: settings.darkMode ? '#F3F4F6' : '#374151'
+                                }}
+                                cursor={{ fill: settings.darkMode ? '#374151' : '#F3F4F6' }}
                             />
                             <Bar dataKey="net" radius={[4, 4, 0, 0]}>
                                 {chartData.map((entry, index) => (
@@ -271,9 +295,17 @@ export default function DailyRecap({ session }) {
                             <div className="text-center py-10 text-gray-400 text-sm">Belum ada data transaksi.</div>
                         ) : (
                             transactions.map((t) => (
-                                <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-50 shadow-sm flex items-center justify-between">
+                                <motion.div
+                                    key={`${t.type}-${t.id}`}
+                                    whileTap={{ scale: 0.98 }}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        handleDelete(t.id, t.type);
+                                    }}
+                                    className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-50 dark:border-gray-700 shadow-sm flex items-center justify-between group relative overflow-hidden"
+                                >
                                     <div className="flex items-center space-x-3">
-                                        <div className={`p-2 rounded-full ${t.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                                        <div className={`p-2 rounded-full ${t.type === 'income' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
                                             {t.type === 'income' ? (
                                                 <Plus size={16} className="text-green-600" />
                                             ) : (
@@ -281,7 +313,7 @@ export default function DailyRecap({ session }) {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-gray-800">
+                                            <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
                                                 {t.type === 'income' ? 'Maxim Order' : t.category}
                                             </p>
                                             <p className="text-xs text-gray-400">
@@ -289,10 +321,19 @@ export default function DailyRecap({ session }) {
                                             </p>
                                         </div>
                                     </div>
-                                    <span className={`font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.displayAmount)}
-                                    </span>
-                                </div>
+                                    <div className="flex items-center space-x-3">
+                                        <span className={`font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
+                                            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.displayAmount)}
+                                        </span>
+                                        {/* Desktop Hover Delete or Touch Long Press Feedback */}
+                                        <button
+                                            onClick={() => handleDelete(t.id, t.type)}
+                                            className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                                        >
+                                            <Minus size={14} className="rotate-45" /> {/* Simple x for delete in list */}
+                                        </button>
+                                    </div>
+                                </motion.div>
                             ))
                         )}
                     </div>
