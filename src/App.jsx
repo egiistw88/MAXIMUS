@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ProfitEngine from './components/ProfitEngine';
-import GVARadar from './components/GVARadar';
+import RealMap from './components/RealMap';
 import AlertCard from './components/AlertCard';
 import StatusFooter from './components/StatusFooter';
 import Toast from './components/Toast';
@@ -142,11 +142,8 @@ function App() {
                     serviceCost={serviceCost}
                 />
 
-                {/* GVA Radar */}
-                <GVARadar
-                    onZoneClick={handleZoneClick}
-                    mapImageUrl={MAP_IMAGE_URL}
-                />
+                {/* GVA Radar (Real Map) */}
+                <RealMap onZoneClick={handleZoneClick} />
 
                 {/* Contextual Alert Card */}
                 <AlertCard
