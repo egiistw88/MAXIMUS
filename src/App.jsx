@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ProfitEngine from './components/ProfitEngine';
 import GVARadar from './components/GVARadar';
@@ -33,6 +33,60 @@ function App() {
 
     // Toast state
     const [toast, setToast] = useState({ message: '', isVisible: false, type: 'success' });
+
+    // PWA Install Prompt state
+    const [installPrompt, setInstallPrompt] = useState(null);
+    const [showInstallButton, setShowInstallButton] = useState(false);
+
+    // Listen for beforeinstallprompt event
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            setInstallPrompt(e);
+            // Show the install button
+            setShowInstallButton(true);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        // Check if app is already installed
+        window.addEventListener('appinstalled', () => {
+            setShowInstallButton(false);
+            setInstallPrompt(null);
+            setToast({
+                message: '✅ MAXIMUS installed successfully!',
+                isVisible: true,
+                type: 'success'
+            });
+        });
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!installPrompt) return;
+
+        // Show the install prompt
+        installPrompt.prompt();
+
+        // Wait for the user to respond to the prompt
+        const { outcome } = await installPrompt.userChoice;
+
+        if (outcome === 'accepted') {
+            setToast({
+                message: '📲 Installing MAXIMUS PILOT...',
+                isVisible: true,
+                type: 'success'
+            });
+        }
+
+        // Clear the prompt
+        setInstallPrompt(null);
+    };
 
     const handleGhostToggle = () => {
         const newState = !isGhostMode;
@@ -77,6 +131,8 @@ function App() {
                 <Header
                     isGhostMode={isGhostMode}
                     onGhostToggle={handleGhostToggle}
+                    showInstallButton={showInstallButton}
+                    onInstallClick={handleInstallClick}
                 />
 
                 {/* Profit Reality Engine */}
