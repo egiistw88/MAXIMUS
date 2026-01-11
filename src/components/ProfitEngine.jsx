@@ -23,7 +23,7 @@ export default function ProfitEngine({ showToast, session }) {
     const appFee = gross * commissionRate;
     // Use fuel efficiency from settings
     const fuelCost = dist * settings.fuelEfficiency;
-    const maintenance = 500;
+    const maintenance = settings.maintenanceFee || 500;
     const netProfit = gross - appFee - fuelCost - maintenance;
 
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID').format(value);
@@ -83,7 +83,8 @@ export default function ProfitEngine({ showToast, session }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                        onClick={() => setShowSuccess(false)}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
                     >
                         <div className="text-center">
                             <motion.div

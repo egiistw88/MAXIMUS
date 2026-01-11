@@ -1,4 +1,5 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const SettingsContext = createContext();
 
@@ -27,17 +28,79 @@ export const SettingsProvider = ({ children }) => {
             vehicleType: 'matic_kecil',
             fuelEfficiency: 200, // Rp/KM default for beat/mio
             defaultCommission: 0.15, // 15% non-prioritas
+            maintenanceFee: 500, // Default fee
             darkMode: false
         };
     });
+
+    const [session, setSession] = useState(null);
+
+    // Initial session check
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Fetch from Supabase when session becomes available
+    useEffect(() => {
+        if (!session) return;
+
+        const fetchProfile = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (data && !error) {
+                // Merge Supabase data into settings, using fallback for missing fields
+                setSettings(prev => ({
+                    ...prev,
+                    driverName: data.full_name || prev.driverName,
+                    dailyTarget: data.daily_target || prev.dailyTarget,
+                    vehicleType: data.vehicle_type || prev.vehicleType,
+                    // These fields might need mapping if not in schema yet or stored in a JSON field
+                    // For now, mapping known fields from supabase_schema.sql
+                }));
+            }
+        };
+
+        fetchProfile();
+    }, [session]);
 
     // Persist to localStorage whenever settings change
     useEffect(() => {
         localStorage.setItem('maximus_settings', JSON.stringify(settings));
     }, [settings]);
 
-    const updateSettings = (newSettings) => {
-        setSettings(prev => ({ ...prev, ...newSettings }));
+    // Optional: Sync to Supabase on change (debounce would be better, but simple update for now)
+    const updateSettings = async (newSettings) => {
+        const updated = { ...settings, ...newSettings };
+        setSettings(updated);
+
+        if (session) {
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: session.user.id,
+                        full_name: updated.driverName,
+                        daily_target: updated.dailyTarget,
+                        vehicle_type: updated.vehicleType,
+                        updated_at: new Date().toISOString()
+                    });
+                if (error) console.error('Error syncing to Supabase:', error);
+            } catch (err) {
+                console.error('Unexpected sync error:', err);
+            }
+        }
     };
 
     const value = {

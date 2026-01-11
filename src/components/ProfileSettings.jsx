@@ -197,6 +197,21 @@ export default function ProfileSettings({ session, showToast }) {
                         <span className="absolute right-3 top-3 text-gray-400 text-sm">/ km</span>
                     </div>
                 </div>
+
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Prediksi Biaya Service (Rp/Order)</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-400">Rp</span>
+                        <input
+                            type="number"
+                            value={settings.maintenanceFee || 500}
+                            onChange={(e) => handleUpdate({ maintenanceFee: parseInt(e.target.value) || 0 })}
+                            placeholder="500"
+                            className="w-full text-base p-3 pl-10 rounded-xl border border-gray-200 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none transition-all"
+                        />
+                        <span className="absolute right-3 top-3 text-gray-400 text-sm">/ order</span>
+                    </div>
+                </div>
             </section>
 
             {/* C. App Preferences */}
