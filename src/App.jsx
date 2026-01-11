@@ -1,11 +1,56 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import ProfitEngine from './components/ProfitEngine';
 import RealMap from './components/RealMap';
 import DailyRecap from './components/DailyRecap';
 import ProfileSettings from './components/ProfileSettings';
 import BottomNavigation from './components/BottomNavigation';
 import Toast from './components/Toast';
+import PageTransition from './components/PageTransition';
+
+function AnimatedRoutes({ onAddOrder, orders, onClearHistory }) {
+    const location = useLocation();
+
+    return (
+        <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+                <Route
+                    path="/"
+                    element={
+                        <PageTransition>
+                            <ProfitEngine onAccept={onAddOrder} />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/map"
+                    element={
+                        <PageTransition>
+                            <RealMap />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/history"
+                    element={
+                        <PageTransition>
+                            <DailyRecap orders={orders} onClearHistory={onClearHistory} />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path="/profile"
+                    element={
+                        <PageTransition>
+                            <ProfileSettings />
+                        </PageTransition>
+                    }
+                />
+            </Routes>
+        </AnimatePresence>
+    );
+}
 
 function App() {
     // Order History State
@@ -52,24 +97,11 @@ function App() {
     return (
         <BrowserRouter>
             <div className="min-h-screen bg-maxim-bg text-maxim-dark font-sans pb-20">
-                <Routes>
-                    <Route
-                        path="/"
-                        element={<ProfitEngine onAccept={handleAddOrder} />}
-                    />
-                    <Route
-                        path="/map"
-                        element={<RealMap />}
-                    />
-                    <Route
-                        path="/history"
-                        element={<DailyRecap orders={orders} onClearHistory={handleClearHistory} />}
-                    />
-                    <Route
-                        path="/profile"
-                        element={<ProfileSettings />}
-                    />
-                </Routes>
+                <AnimatedRoutes
+                    onAddOrder={handleAddOrder}
+                    orders={orders}
+                    onClearHistory={handleClearHistory}
+                />
 
                 <BottomNavigation />
 
