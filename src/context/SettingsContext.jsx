@@ -92,28 +92,9 @@ export const SettingsProvider = ({ children }) => {
         localStorage.setItem('maximus_settings', JSON.stringify(settings));
     }, [settings]);
 
-    // Optional: Sync to Supabase on change (debounce would be better, but simple update for now)
-    const updateSettings = async (newSettings) => {
-        const updated = { ...settings, ...newSettings };
-        setSettings(updated);
-
-        if (session) {
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: session.user.id,
-                        full_name: updated.driverName,
-                        daily_target: updated.dailyTarget,
-                        vehicle_type: updated.vehicleType,
-                        updated_at: new Date().toISOString()
-                    });
-                if (error) console.error('Error syncing to Supabase:', error);
-            } catch (err) {
-                console.error('Unexpected sync error:', err);
-            }
-        }
-    };
+    const updateSettings = useCallback((newSettings) => {
+        setSettings(prev => ({ ...prev, ...newSettings }));
+    }, []);
 
     const value = {
         settings,

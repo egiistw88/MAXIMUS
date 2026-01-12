@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { User, Car, Settings as SettingsIcon, Moon, Sun, ChevronDown, Cloud } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { supabase } from '../lib/supabaseClient';
@@ -16,6 +16,11 @@ export default function ProfileSettings({ session, showToast }) {
     const { settings, updateSettings } = useSettings();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const settingsRef = useRef(settings);
+
+    useEffect(() => {
+        settingsRef.current = settings;
+    }, [settings]);
 
     // Fetch profile from Supabase on mount
     useEffect(() => {
@@ -62,7 +67,7 @@ export default function ProfileSettings({ session, showToast }) {
             try {
                 const { error } = await supabase.from('profiles').upsert({
                     id: session.user.id,
-                    updated_at: new Date(),
+                    updated_at: new Date().toISOString(),
                     vehicle_type: newSettings.vehicleType,
                     daily_target: newSettings.dailyTarget,
                     full_name: newSettings.driverName,
@@ -83,9 +88,10 @@ export default function ProfileSettings({ session, showToast }) {
 
     // Wrapper to update both Local Context and Cloud
     const handleUpdate = (updates) => {
+        const nextSettings = { ...settingsRef.current, ...updates };
         updateSettings(updates);
         // Merge current settings with updates for the cloud save
-        saveToCloud({ ...settings, ...updates });
+        saveToCloud(nextSettings);
     };
 
     // Vehicle presets to auto-fill efficiency
