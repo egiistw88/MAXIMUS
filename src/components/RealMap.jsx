@@ -108,6 +108,32 @@ export default function RealMap() {
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const simulationIntervalRef = useRef(null);
+    const watchIdRef = useRef(null);
+    const hasRealPositionRef = useRef(false);
+
+    const stopSimulation = () => {
+        if (simulationIntervalRef.current) {
+            clearInterval(simulationIntervalRef.current);
+            simulationIntervalRef.current = null;
+        }
+    };
+
+    const startSimulation = () => {
+        if (simulationIntervalRef.current) return;
+
+        setUserPos(prev => prev || BANDUNG_CENTER);
+
+        simulationIntervalRef.current = setInterval(() => {
+            setUserPos(prev => {
+                if (!prev) return BANDUNG_CENTER;
+                return [
+                    prev[0] + (Math.random() - 0.5) * 0.0002,
+                    prev[1] + (Math.random() - 0.5) * 0.0002
+                ];
+            });
+        }, 5000);
+    };
 
     // 1. Fetch Data
     useEffect(() => {
@@ -130,20 +156,43 @@ export default function RealMap() {
         };
 
         fetchSpots();
+    }, []);
 
-        // Mock User Position (Simulating Movement)
-        setUserPos(BANDUNG_CENTER);
-        const interval = setInterval(() => {
-            setUserPos(prev => {
-                if (!prev) return BANDUNG_CENTER;
-                return [
-                    prev[0] + (Math.random() - 0.5) * 0.0002,
-                    prev[1] + (Math.random() - 0.5) * 0.0002
-                ];
-            });
-        }, 5000);
+    // 1b. Real-time device location (with fallback simulation)
+    useEffect(() => {
+        if (!('geolocation' in navigator)) {
+            console.warn('Geolocation is not supported. Using simulation mode.');
+            startSimulation();
+            return () => stopSimulation();
+        }
 
-        return () => clearInterval(interval);
+        const handleSuccess = (position) => {
+            const { latitude, longitude } = position.coords;
+            hasRealPositionRef.current = true;
+            stopSimulation();
+            setUserPos([latitude, longitude]);
+        };
+
+        const handleError = (error) => {
+            console.warn('Geolocation error, switching to simulation:', error);
+            if (!hasRealPositionRef.current) {
+                startSimulation();
+            }
+        };
+
+        watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 15000
+        });
+
+        return () => {
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+            stopSimulation();
+        };
     }, []);
 
     // 2. "The Brain" - Live Recommendation Logic
