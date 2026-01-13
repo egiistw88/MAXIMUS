@@ -107,6 +107,7 @@ export default function RealMap() {
     const [strategicSpots, setStrategicSpots] = useState([]);
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
+    const [geoStatus, setGeoStatus] = useState('idle');
     const [isLoading, setIsLoading] = useState(true);
     const simulationIntervalRef = useRef(null);
     const watchIdRef = useRef(null);
@@ -158,42 +159,49 @@ export default function RealMap() {
         fetchSpots();
     }, []);
 
-    // 1b. Real-time device location (with fallback simulation)
+    // 1b. Real Geolocation
     useEffect(() => {
-        if (!('geolocation' in navigator)) {
-            console.warn('Geolocation is not supported. Using simulation mode.');
-            startSimulation();
-            return () => stopSimulation();
+        if (!navigator.geolocation) {
+            setGeoStatus('unsupported');
+            setUserPos(BANDUNG_CENTER);
+            return;
         }
 
-        const handleSuccess = (position) => {
-            const { latitude, longitude } = position.coords;
-            hasRealPositionRef.current = true;
-            stopSimulation();
-            setUserPos([latitude, longitude]);
-        };
-
-        const handleError = (error) => {
-            console.warn('Geolocation error, switching to simulation:', error);
-            if (!hasRealPositionRef.current) {
-                startSimulation();
+        setGeoStatus('requesting');
+        const watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                setUserPos([position.coords.latitude, position.coords.longitude]);
+                setGeoStatus('ready');
+            },
+            (error) => {
+                console.error('Geolocation error:', error);
+                setGeoStatus('error');
+                setUserPos(BANDUNG_CENTER);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 10000,
+                timeout: 10000
             }
-        };
-
-        watchIdRef.current = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-            enableHighAccuracy: true,
-            maximumAge: 10000,
-            timeout: 15000
-        });
+        );
 
         return () => {
-            if (watchIdRef.current !== null) {
-                navigator.geolocation.clearWatch(watchIdRef.current);
-                watchIdRef.current = null;
-            }
-            stopSimulation();
+            navigator.geolocation.clearWatch(watchId);
         };
     }, []);
+
+    const toRad = (value) => (value * Math.PI) / 180;
+
+    const getDistanceKm = (from, to) => {
+        const [lat1, lng1] = from;
+        const [lat2, lng2] = to;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return 6371 * c;
+    };
 
     // 2. "The Brain" - Live Recommendation Logic
     useEffect(() => {
@@ -211,8 +219,18 @@ export default function RealMap() {
             });
 
             if (activeSpots.length > 0) {
-                // Priority: Pick the closest one? Or just the first for now.
-                const spot = activeSpots[0];
+                const spot = activeSpots
+                    .map((candidate) => {
+                        const lat = candidate.latitude || candidate.lat;
+                        const lng = candidate.longitude || candidate.lng;
+                        if (!lat || !lng || !userPos) return null;
+                        return {
+                            spot: candidate,
+                            distanceKm: getDistanceKm(userPos, [lat, lng])
+                        };
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => a.distanceKm - b.distanceKm)[0]?.spot || activeSpots[0];
 
                 // robustly get lat/lng
                 const lat = spot.latitude || spot.lat;
@@ -221,7 +239,9 @@ export default function RealMap() {
                 setCurrentRecommendation({
                     isFree: false,
                     title: `🔥 HOT SPOT JAM ${currentHour}:00`,
-                    subtitle: `Geser ke ${spot.name}. Strategi: ${spot.notes || 'Standby.'}`,
+                    subtitle: userPos
+                        ? `Geser ke ${spot.name}. Strategi: ${spot.notes || 'Standby.'}`
+                        : `Rekomendasi terdekat menunggu lokasi aktif.`,
                     lat,
                     lng
                 });
@@ -238,7 +258,7 @@ export default function RealMap() {
         if (!isLoading) updateRecommendation();
 
         return () => clearInterval(timer);
-    }, [strategicSpots, isLoading]);
+    }, [strategicSpots, isLoading, userPos]);
 
     if (isLoading) {
         return (
