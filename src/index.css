@@ -41,89 +41,77 @@
 /* --- Map Marker Animations --- */
 @keyframes pulse-ring {
   0% {
-    transform: scale(0.33);
-    opacity: 1;
+    transform: scale(0.4);
+    opacity: 0.9;
   }
 
   80%,
   100% {
-    transform: scale(2);
+    transform: scale(2.6);
     opacity: 0;
   }
 }
 
-@keyframes pulse-dot {
-  0% {
-    transform: scale(0.8);
+@keyframes radar-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(59, 130, 246, 0.35);
   }
 
   50% {
-    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
   }
-
-  100% {
-    transform: scale(0.8);
-  }
-}
-
-.marker-pin {
-  width: 30px;
-  height: 30px;
-  border-radius: 50% 50% 50% 0;
-  background: #c30b82;
-  position: absolute;
-  transform: rotate(-45deg);
-  left: 50%;
-  top: 50%;
-  margin: -15px 0 0 -15px;
 }
 
 /* User Location Marker */
 .user-marker-pulse {
-  background: rgba(59, 130, 246, 0.4);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 45%, rgba(59, 130, 246, 0) 70%);
   border-radius: 50%;
-  height: 40px;
-  width: 40px;
+  height: 44px;
+  width: 44px;
   position: absolute;
-  left: -14px;
-  top: -14px;
-  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  left: -16px;
+  top: -16px;
+  animation: pulse-ring 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  filter: blur(0.2px);
 }
 
 .user-marker-dot {
-  background: #3B82F6;
+  background: #3b82f6;
   border-radius: 50%;
-  height: 12px;
-  width: 12px;
+  height: 10px;
+  width: 10px;
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  border: 2px solid white;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 0 8px rgba(59, 130, 246, 0.6);
+  animation: radar-glow 1.6s ease-in-out infinite;
 }
 
 /* Active Strategy Marker */
 .active-strategy-ring {
-  border: 3px solid #FFD700;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.22) 0%, rgba(255, 215, 0, 0.1) 50%, rgba(255, 215, 0, 0) 72%);
+  border: 2px solid rgba(255, 215, 0, 0.9);
   border-radius: 50%;
-  height: 50px;
-  width: 50px;
+  height: 54px;
+  width: 54px;
   position: absolute;
-  left: -17px;
-  top: -17px;
-  animation: pulse-ring 2.5s infinite;
-  opacity: 0.6;
+  left: -19px;
+  top: -19px;
+  animation: pulse-ring 2.8s ease-out infinite;
+  opacity: 0.8;
 }
 
 .active-strategy-pin {
-  background-color: #FFD700;
-  width: 16px;
-  height: 16px;
+  background-color: #ffd700;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   position: absolute;
   left: 0;
   top: 0;
-  border: 2px solid white;
-  box-shadow: 0 0 10px #FFD700;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
 }
