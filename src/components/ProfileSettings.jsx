@@ -36,7 +36,7 @@ export default function ProfileSettings({ session, showToast }) {
                     .maybeSingle();
 
                 if (error && error.code !== 'PGRST116') { // PGRST116: JSON object requested, multiple (or no) rows returned
-                    console.error('Error fetching profile:', error);
+                    window.alert(`ERROR: ${error.message}\nCODE: ${error.code}\nDETAILS: ${error.details}`);
                 }
 
                 if (data) {
@@ -62,28 +62,41 @@ export default function ProfileSettings({ session, showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const saveToCloud = useCallback(
         debounce(async (newSettings) => {
-            if (!session?.user) return;
+            if (!session || !session.user) {
+                return window.alert('No active session found!');
+            }
+            if (saving) return;
             setSaving(true);
-            try {
-                const { error } = await supabase.from('profiles').upsert({
-                    id: session.user.id,
-                    updated_at: new Date().toISOString(),
-                    vehicle_type: newSettings.vehicleType,
-                    daily_target: newSettings.dailyTarget,
-                    full_name: newSettings.driverName,
-                    // username: '...', // We don't have username input yet
-                });
+            const username = newSettings.username ?? '';
+            const full_name = newSettings.driverName ?? '';
+            const website = newSettings.website ?? '';
+            const updates = {
+                id: session.user.id,
+                username,
+                full_name,
+                website,
+                updated_at: new Date().toISOString(),
+                vehicle_type: newSettings.vehicleType,
+                daily_target: newSettings.dailyTarget
+            };
 
-                if (error) throw error;
+            try {
+                const { error } = await supabase.from('profiles').upsert(updates);
+
+                if (error) {
+                    window.alert(`ERROR: ${error.message}\nCODE: ${error.code}\nDETAILS: ${error.details}`);
+                    return;
+                }
                 if (showToast) showToast('Profil tersimpan di Cloud', 'success');
             } catch (error) {
-                console.error('Error saving profile:', error);
+                const alertError = error ?? {};
+                window.alert(`ERROR: ${alertError.message}\nCODE: ${alertError.code}\nDETAILS: ${alertError.details}`);
                 if (showToast) showToast('Gagal menyimpan profil', 'error');
             } finally {
                 setSaving(false);
             }
         }, 1000),
-        [session, showToast]
+        [saving, session, showToast]
     );
 
     // Wrapper to update both Local Context and Cloud
