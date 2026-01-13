@@ -21,17 +21,22 @@ export default function DailyRecap({ session }) {
     const [loading, setLoading] = useState(true);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [chartData, setChartData] = useState([]);
+    const [activeRecap, setActiveRecap] = useState('omzet');
 
     const [metrics, setMetrics] = useState({
         grossIncome: 0,
         actualExpenses: 0,
         netCash: 0,
-        efficiencyScore: 0
+        efficiencyScore: 0,
+        appFeeTotal: 0,
+        fuelCostTotal: 0,
+        ordersCount: 0,
+        expensesCount: 0
     });
 
     useEffect(() => {
         fetchData();
-    }, [session]);
+    }, [session, settings.defaultCommission, settings.fuelEfficiency]);
 
     const fetchData = async () => {
         try {
@@ -71,6 +76,19 @@ export default function DailyRecap({ session }) {
         const totalIncome = orders.reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
         const totalExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
         const cashBalance = totalIncome - totalExpenses;
+        const commissionRate = settings.defaultCommission ?? 0;
+        const totalAppFee = orders.reduce((sum, order) => {
+            const netValue = parseFloat(order.price) || 0;
+            if (commissionRate <= 0 || commissionRate >= 1) {
+                return sum;
+            }
+            const estimatedGross = netValue / (1 - commissionRate);
+            return sum + (estimatedGross - netValue);
+        }, 0);
+        const totalFuelCost = orders.reduce((sum, order) => {
+            const distance = parseFloat(order.distance) || 0;
+            return sum + distance * (settings.fuelEfficiency || 0);
+        }, 0);
 
         let efficiency = 0;
         if (totalIncome > 0) {
@@ -81,7 +99,11 @@ export default function DailyRecap({ session }) {
             grossIncome: totalIncome,
             actualExpenses: totalExpenses,
             netCash: cashBalance,
-            efficiencyScore: efficiency
+            efficiencyScore: efficiency,
+            appFeeTotal: totalAppFee,
+            fuelCostTotal: totalFuelCost,
+            ordersCount: orders.length,
+            expensesCount: expenses.length
         });
 
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -162,7 +184,15 @@ export default function DailyRecap({ session }) {
 
             <div className="flex-1 overflow-y-auto px-5 space-y-6">
                 <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-24">
+                    <button
+                        type="button"
+                        onClick={() => setActiveRecap('omzet')}
+                        className={`bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border flex flex-col justify-between h-24 text-left transition ${
+                            activeRecap === 'omzet'
+                                ? 'border-green-400 ring-1 ring-green-200 dark:ring-green-500/40'
+                                : 'border-gray-100 dark:border-gray-700'
+                        }`}
+                    >
                         <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg w-fit">
                             <TrendingUp size={16} className="text-green-600" />
                         </div>
@@ -172,31 +202,112 @@ export default function DailyRecap({ session }) {
                                 {formatCurrency(metrics.grossIncome)}
                             </p>
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between h-24">
+                    <button
+                        type="button"
+                        onClick={() => setActiveRecap('pengeluaran')}
+                        className={`bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border flex flex-col justify-between h-24 text-left transition ${
+                            activeRecap === 'pengeluaran'
+                                ? 'border-red-400 ring-1 ring-red-200 dark:ring-red-500/40'
+                                : 'border-gray-100 dark:border-gray-700'
+                        }`}
+                    >
                         <div className="p-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg w-fit">
                             <TrendingDown size={16} className="text-red-600" />
                         </div>
                         <div>
-                            <p className="text-[10px] text-gray-400 font-semibold uppercase">Keluar</p>
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase">Pengeluaran</p>
                             <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                                 {formatCurrency(metrics.actualExpenses)}
                             </p>
                         </div>
-                    </div>
+                    </button>
 
-                    <div className="bg-maxim-dark dark:bg-black p-3 rounded-2xl shadow-lg border border-gray-800 dark:border-gray-700 flex flex-col justify-between h-24 text-white">
+                    <button
+                        type="button"
+                        onClick={() => setActiveRecap('potongan')}
+                        className={`bg-maxim-dark dark:bg-black p-3 rounded-2xl shadow-lg border flex flex-col justify-between h-24 text-left transition ${
+                            activeRecap === 'potongan'
+                                ? 'border-maxim-yellow ring-1 ring-yellow-200 dark:ring-maxim-yellow/40'
+                                : 'border-gray-800 dark:border-gray-700'
+                        }`}
+                    >
                         <div className="p-1.5 bg-white/10 rounded-lg w-fit">
                             <Wallet size={16} className="text-maxim-yellow" />
                         </div>
                         <div>
-                            <p className="text-[10px] text-gray-400 font-semibold uppercase">Sisa Uang</p>
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase">Rekap Potongan</p>
                             <p className="text-sm font-bold text-maxim-yellow truncate">
-                                {formatCurrency(metrics.netCash)}
+                                {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal)}
                             </p>
                         </div>
-                    </div>
+                    </button>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    {activeRecap === 'omzet' && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Total Omzet</span>
+                                <span className="font-bold text-gray-800 dark:text-gray-100">
+                                    {formatCurrency(metrics.grossIncome)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Jumlah Order</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-200">
+                                    {metrics.ordersCount} trip
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Sisa Uang</span>
+                                <span className="font-semibold text-green-600">
+                                    {formatCurrency(metrics.netCash)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeRecap === 'pengeluaran' && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Total Pengeluaran</span>
+                                <span className="font-bold text-gray-800 dark:text-gray-100">
+                                    {formatCurrency(metrics.actualExpenses)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Jumlah Transaksi</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-200">
+                                    {metrics.expensesCount} item
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeRecap === 'potongan' && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Potongan Aplikasi</span>
+                                <span className="font-semibold text-red-500">
+                                    -{formatCurrency(metrics.appFeeTotal)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Potongan Bensin</span>
+                                <span className="font-semibold text-red-500">
+                                    -{formatCurrency(metrics.fuelCostTotal)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Total Potongan</span>
+                                <span className="font-bold text-gray-800 dark:text-gray-100">
+                                    {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
