@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import L from 'leaflet';
 
 // --- Leaflet Icon Fix ---
@@ -46,34 +46,6 @@ export default function RealMap() {
     const [strategicSpots, setStrategicSpots] = useState([]);
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
-    const [geoStatus, setGeoStatus] = useState('idle');
-    const [isLoading, setIsLoading] = useState(true);
-    const simulationIntervalRef = useRef(null);
-    const watchIdRef = useRef(null);
-    const hasRealPositionRef = useRef(false);
-
-    const stopSimulation = () => {
-        if (simulationIntervalRef.current) {
-            clearInterval(simulationIntervalRef.current);
-            simulationIntervalRef.current = null;
-        }
-    };
-
-    const startSimulation = () => {
-        if (simulationIntervalRef.current) return;
-
-        setUserPos(prev => prev || BANDUNG_CENTER);
-
-        simulationIntervalRef.current = setInterval(() => {
-            setUserPos(prev => {
-                if (!prev) return BANDUNG_CENTER;
-                return [
-                    prev[0] + (Math.random() - 0.5) * 0.0002,
-                    prev[1] + (Math.random() - 0.5) * 0.0002
-                ];
-            });
-        }, 5000);
-    };
 
     // 1. Fetch Data
     useEffect(() => {
@@ -89,9 +61,7 @@ export default function RealMap() {
                     setStrategicSpots(data || []);
                 }
             } catch (err) {
-                console.error("Unexpected error:", err);
-            } finally {
-                setIsLoading(false);
+                console.error('Unexpected error:', err);
             }
         };
 
@@ -101,20 +71,16 @@ export default function RealMap() {
     // 1b. Real Geolocation
     useEffect(() => {
         if (!navigator.geolocation) {
-            setGeoStatus('unsupported');
             setUserPos(BANDUNG_CENTER);
             return;
         }
 
-        setGeoStatus('requesting');
         const watchId = navigator.geolocation.watchPosition(
             (position) => {
                 setUserPos([position.coords.latitude, position.coords.longitude]);
-                setGeoStatus('ready');
             },
             (error) => {
                 console.error('Geolocation error:', error);
-                setGeoStatus('error');
                 setUserPos(BANDUNG_CENTER);
             },
             {
@@ -144,15 +110,10 @@ export default function RealMap() {
 
     // 2. "The Brain" - Live Recommendation Logic
     useEffect(() => {
-        // Run logic immediately when spots change or periodically
         const updateRecommendation = () => {
-            // if (!strategicSpots.length) return; // Allow running even if empty to show "Free Mode"
-
             const currentHour = new Date().getHours();
 
-            // Filter for ACTIVE spots
             const activeSpots = strategicSpots.filter(spot => {
-                // Safety check for hours
                 if (spot.start_hour === undefined || spot.end_hour === undefined) return false;
                 return spot.start_hour <= currentHour && spot.end_hour > currentHour;
             });
@@ -171,7 +132,6 @@ export default function RealMap() {
                     .filter(Boolean)
                     .sort((a, b) => a.distanceKm - b.distanceKm)[0]?.spot || activeSpots[0];
 
-                // robustly get lat/lng
                 const lat = spot.latitude ?? spot.lat;
                 const lng = spot.longitude ?? spot.lng;
 
@@ -180,47 +140,33 @@ export default function RealMap() {
                     title: `🔥 HOT SPOT JAM ${currentHour}:00`,
                     subtitle: userPos
                         ? `Geser ke ${spot.name}. Strategi: ${spot.notes || 'Standby.'}`
-                        : `Rekomendasi terdekat menunggu lokasi aktif.`,
+                        : 'Rekomendasi terdekat menunggu lokasi aktif.',
                     lat,
                     lng
                 });
             } else {
                 setCurrentRecommendation({
                     isFree: true,
-                    title: `☕ Mode Bebas / Ngetem Santai`,
-                    subtitle: "Belum ada rotasi terjadwal. Cek area perumahan."
+                    title: '☕ Mode Bebas / Ngetem Santai',
+                    subtitle: 'Belum ada rotasi terjadwal. Cek area perumahan.'
                 });
             }
         };
 
         const timer = setInterval(updateRecommendation, 60000);
-        if (!isLoading) updateRecommendation();
+        updateRecommendation();
 
         return () => clearInterval(timer);
-    }, [strategicSpots, isLoading, userPos]);
-
-    if (isLoading) {
-        return (
-            <div
-                className="flex items-center justify-center bg-slate-50"
-                style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}
-            >
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-t-blue-600 border-slate-200 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="font-outfit text-slate-600 font-bold animate-pulse">Memuat Peta Strategis...</p>
-                </div>
-            </div>
-        );
-    }
+    }, [strategicSpots, userPos]);
 
     return (
         <div
             className="z-0"
             style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}
         >
+            {/* UI Overlay di luar MapContainer */}
             <div className="absolute inset-0 z-[1000] pointer-events-none">
                 <StrategyCard recommendation={currentRecommendation} />
-                <RecenterFab userPos={userPos} />
             </div>
 
             <MapContainer
@@ -233,8 +179,14 @@ export default function RealMap() {
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    url={settings.darkMode
+                        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                    }
                 />
+
+                {/* RecenterFab WAJIB DI SINI (Di dalam MapContainer) */}
+                <RecenterFab userPos={userPos} />
 
                 {/* User Position */}
                 {userPos && (
@@ -247,13 +199,11 @@ export default function RealMap() {
 
                 {/* Strategic Spots */}
                 {strategicSpots.map((spot) => {
-                    // 1. Safety Guard
                     const lat = spot.latitude ?? spot.lat;
                     const lng = spot.longitude ?? spot.lng;
 
                     if (lat == null || lng == null) return null;
 
-                    // 2. Determine State (Active vs Inactive)
                     const currentHour = new Date().getHours();
                     const isActive = (spot.start_hour !== undefined && spot.end_hour !== undefined)
                         && (spot.start_hour <= currentHour && spot.end_hour > currentHour);
@@ -265,7 +215,7 @@ export default function RealMap() {
                             key={spot.id}
                             position={[lat, lng]}
                             icon={icon}
-                            zIndexOffset={isActive ? 1000 : 0} // Active always on top
+                            zIndexOffset={isActive ? 1000 : 0}
                         >
                             <Popup className="custom-popup" closeButton={false}>
                                 <div className="p-1 min-w-[200px]">
