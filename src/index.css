@@ -10,6 +10,24 @@
   }
 }
 
+/* --- Leaflet stacking order fixes --- */
+.leaflet-container {
+  z-index: 0;
+}
+
+.leaflet-pane {
+  z-index: 100;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 400;
+}
+
+.leaflet-popup {
+  z-index: 600;
+}
+
 /* Hide scrollbar but keep scrolling */
 .hide-scrollbar {
   -ms-overflow-style: none;
