@@ -1,8 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useEffect, useState } from 'react';
 import L from 'leaflet';
-import { supabase } from '../lib/supabaseClient';
-import { useSettings } from '../context/SettingsContext';
 
 // --- Leaflet Icon Fix ---
 delete L.Icon.Default.prototype._getIconUrl;
@@ -42,71 +40,6 @@ const inactiveStrategyIcon = L.divIcon({
 });
 
 const BANDUNG_CENTER = [-6.9175, 107.6191];
-
-// --- Sub-components for Overlay UI ---
-
-function RecenterFab({ userPos }) {
-    const map = useMap();
-
-    const handleRecenter = () => {
-        if (userPos) {
-            map.flyTo(userPos, 15, {
-                animate: true,
-                duration: 1.5
-            });
-        }
-    };
-
-    return (
-        <button
-            onClick={handleRecenter}
-            className="absolute bottom-28 right-4 w-12 h-12 bg-white text-slate-900 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform pointer-events-auto"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-        </button>
-    );
-}
-
-function StrategyCard({ recommendation }) {
-    if (!recommendation) return null;
-
-    const navUrl = recommendation.lat != null && recommendation.lng != null
-        ? `https://www.google.com/maps/dir/?api=1&destination=${recommendation.lat},${recommendation.lng}`
-        : '#';
-
-    return (
-        <div className="absolute bottom-6 left-4 right-20 mx-auto max-w-sm pointer-events-auto">
-            <div className="backdrop-blur-md bg-white/95 shadow-2xl rounded-2xl p-4 border-l-4 border-l-yellow-400">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1 font-outfit">
-                            {recommendation.title}
-                        </h3>
-                        <p className="text-sm text-slate-600 font-medium leading-snug">
-                            {recommendation.subtitle}
-                        </p>
-                    </div>
-                </div>
-
-                {!recommendation.isFree && (
-                    <a
-                        href={navUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 block w-full bg-slate-900 text-white text-center py-2 rounded-lg font-bold text-sm active:scale-95 transition-transform"
-                    >
-                        🚀 NAVIGASI
-                    </a>
-                )}
-            </div>
-        </div>
-    );
-}
-
-// --- Main Map Component ---
 
 export default function RealMap() {
     const { settings } = useSettings();
