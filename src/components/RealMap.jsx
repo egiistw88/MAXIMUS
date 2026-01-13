@@ -1,4 +1,3 @@
-import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
@@ -270,7 +269,10 @@ export default function RealMap() {
 
     if (isLoading) {
         return (
-            <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center bg-slate-50">
+            <div
+                className="flex items-center justify-center bg-slate-50"
+                style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}
+            >
                 <div className="text-center">
                     <div className="w-10 h-10 border-4 border-t-blue-600 border-slate-200 rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="font-outfit text-slate-600 font-bold animate-pulse">Memuat Peta Strategis...</p>
@@ -280,7 +282,10 @@ export default function RealMap() {
     }
 
     return (
-        <div className="w-full h-[calc(100vh-80px)] relative z-0">
+        <div
+            className="z-0"
+            style={{ height: 'calc(100vh - 80px)', width: '100%', position: 'relative' }}
+        >
             <div className="absolute inset-0 z-[1000] pointer-events-none">
                 <StrategyCard recommendation={currentRecommendation} />
                 <RecenterFab userPos={userPos} />
@@ -291,7 +296,8 @@ export default function RealMap() {
                 zoom={13}
                 zoomControl={false}
                 scrollWheelZoom={true}
-                className="w-full h-full z-[1]"
+                className="z-[1]"
+                style={{ height: '100%', width: '100%' }}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
