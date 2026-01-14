@@ -88,6 +88,9 @@ export default function RealMap() {
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
     const [timeTick, setTimeTick] = useState(Date.now());
+    const [spotsLoading, setSpotsLoading] = useState(true);
+    const [spotsError, setSpotsError] = useState(false);
+    const [geoError, setGeoError] = useState(false);
 
     const currentDate = new Date(timeTick);
     const currentHour = currentDate.getHours();
@@ -115,6 +118,8 @@ export default function RealMap() {
 
     useEffect(() => {
         const fetchSpots = async () => {
+            setSpotsLoading(true);
+            setSpotsError(false);
             try {
                 const { data, error } = await supabase
                     .from('strategic_spots')
@@ -123,6 +128,7 @@ export default function RealMap() {
                 if (error) {
                     console.error('Error fetching spots:', error);
                     setStrategicSpots([]);
+                    setSpotsError(true);
                     return;
                 }
 
@@ -130,6 +136,9 @@ export default function RealMap() {
             } catch (err) {
                 console.error('Unexpected error:', err);
                 setStrategicSpots([]);
+                setSpotsError(true);
+            } finally {
+                setSpotsLoading(false);
             }
         };
 
@@ -139,16 +148,19 @@ export default function RealMap() {
     useEffect(() => {
         if (!navigator.geolocation) {
             setUserPos(BANDUNG_CENTER);
+            setGeoError(true);
             return;
         }
 
         const watchId = navigator.geolocation.watchPosition(
             (position) => {
                 setUserPos([position.coords.latitude, position.coords.longitude]);
+                setGeoError(false);
             },
             (error) => {
                 console.error('Geolocation error:', error);
                 setUserPos(BANDUNG_CENTER);
+                setGeoError(true);
             },
             {
                 enableHighAccuracy: true,
@@ -232,6 +244,23 @@ export default function RealMap() {
         >
             <div className="absolute inset-0 z-[1000] pointer-events-none">
                 <StrategyCard recommendation={currentRecommendation} />
+                <div className="absolute left-4 right-4 top-20 space-y-2 text-xs text-slate-600">
+                    {spotsLoading && (
+                        <div className="rounded-full bg-white/90 px-3 py-1 shadow-md">
+                            Memuat lokasi strategis…
+                        </div>
+                    )}
+                    {spotsError && (
+                        <div className="rounded-full bg-white/90 px-3 py-1 shadow-md">
+                            Gagal memuat lokasi strategis.
+                        </div>
+                    )}
+                    {geoError && (
+                        <div className="rounded-full bg-white/90 px-3 py-1 shadow-md">
+                            Lokasi tidak tersedia, menampilkan titik default.
+                        </div>
+                    )}
+                </div>
             </div>
 
             <MapContainer
