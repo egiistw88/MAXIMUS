@@ -36,6 +36,7 @@ export default function Riwayat({ session }) {
     const [loading, setLoading] = useState(true);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [chartData, setChartData] = useState([]);
+    const [dailyRecapData, setDailyRecapData] = useState([]);
     const [activeRecap, setActiveRecap] = useState('omzet');
     const [editingOrder, setEditingOrder] = useState(null);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
@@ -241,6 +242,44 @@ export default function Riwayat({ session }) {
             return { ...day, net: dailyIncome - dailyExpense };
         });
         setChartData(chart);
+
+        const dailyRecap = monthOrders.reduce((acc, order) => {
+            const orderDate = parseDate(order.created_at);
+            if (!orderDate) return acc;
+            const key = format(orderDate, 'yyyy-MM-dd');
+            if (!acc[key]) {
+                acc[key] = {
+                    date: orderDate,
+                    income: 0,
+                    expense: 0
+                };
+            }
+            acc[key].income += parseFloat(order.price) || 0;
+            return acc;
+        }, {});
+
+        monthExpenses.forEach((expense) => {
+            const expenseDate = parseDate(expense.created_at);
+            if (!expenseDate) return;
+            const key = format(expenseDate, 'yyyy-MM-dd');
+            if (!dailyRecap[key]) {
+                dailyRecap[key] = {
+                    date: expenseDate,
+                    income: 0,
+                    expense: 0
+                };
+            }
+            dailyRecap[key].expense += parseFloat(expense.amount) || 0;
+        });
+
+        const dailyRecapList = Object.values(dailyRecap)
+            .sort((a, b) => b.date - a.date)
+            .map((item) => ({
+                ...item,
+                net: item.income - item.expense
+            }));
+
+        setDailyRecapData(dailyRecapList);
 
         const combined = [
             ...monthOrders.map(o => ({ ...o, type: 'income', displayAmount: o.price })),
@@ -531,6 +570,48 @@ export default function Riwayat({ session }) {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* --- REKAP HARIAN --- */}
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200">Rekap Harian Bulan Ini</h3>
+                        <span className="text-xs text-gray-400">Arus kas per hari</span>
+                    </div>
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                        {dailyRecapData.length === 0 ? (
+                            <div className="text-center py-6 text-gray-400 text-sm">
+                                Belum ada rekap harian.
+                            </div>
+                        ) : (
+                            dailyRecapData.map((recap) => (
+                                <div
+                                    key={format(recap.date, 'yyyy-MM-dd')}
+                                    className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3"
+                                >
+                                    <div>
+                                        <p className="text-xs text-gray-400">
+                                            {format(recap.date, 'EEEE, dd MMM', { locale: id })}
+                                        </p>
+                                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                            {format(recap.date, 'dd/MM/yyyy')}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-gray-400">
+                                            Masuk: <span className="text-green-600">+{formatCurrency(recap.income)}</span>
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Keluar: <span className="text-red-500">-{formatCurrency(recap.expense)}</span>
+                                        </p>
+                                        <p className={`text-sm font-bold ${recap.net >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                            {recap.net >= 0 ? '+' : '-'}{formatCurrency(Math.abs(recap.net))}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
                 {/* --- CHART 7 HARI --- */}
