@@ -63,74 +63,88 @@ export default function Riwayat({ session }) {
         if(session) fetchData();
     }, [session, settings.defaultCommission, settings.fuelEfficiency]);
 
-    useEffect(() => {
-        if(session) fetchTodayRecap();
-    }, [session]);
+    const parseDate = (value) => {
+        if (!value) return null;
+        const parsed = parseISO(value);
+        return isValid(parsed) ? parsed : null;
+    };
 
-    // --- FITUR BARU: Hitung Setoran Hari Ini ---
-    const fetchTodayRecap = async () => {
-        try {
-            const now = new Date();
-            const startToday = startOfDay(now).toISOString();
-            const endToday = endOfDay(now).toISOString();
+    const getLocalDateRanges = (date = new Date()) => {
+        const startToday = startOfDay(date);
+        const endToday = endOfDay(date);
+        const startMonth = startOfMonth(date);
+        const endMonth = endOfMonth(date);
+        return {
+            startToday,
+            endToday,
+            startMonth,
+            endMonth
+        };
+    };
 
-            // FIX: Menggunakan 'created_at' bukan 'date' agar aman
-            const { data: expensesData, error: expensesError } = await supabase
-                .from('expenses')
-                .select('*')
-                .gte('created_at', startToday)
-                .lte('created_at', endToday);
+    const isWithinLocalRange = (value, start, end) => {
+        const parsed = parseDate(value);
+        return parsed ? parsed >= start && parsed <= end : false;
+    };
 
-            if (expensesError) throw expensesError;
+    const calculateFinancials = (orders, expenses) => {
+        const { startToday, endToday } = getLocalDateRanges();
+        const todayOrders = orders.filter((order) =>
+            isWithinLocalRange(order.created_at, startToday, endToday)
+        );
+        const todayExpenses = expenses.filter((expense) =>
+            isWithinLocalRange(expense.created_at, startToday, endToday)
+        );
+        const monthOrders = orders;
+        const monthExpenses = expenses;
 
-            const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select('*')
-                .gte('created_at', startToday)
-                .lte('created_at', endToday);
+        const sumValues = (items, key) =>
+            items.reduce((sum, item) => sum + (parseFloat(item[key]) || 0), 0);
 
-            if (ordersError) throw ordersError;
+        const todayIncome = sumValues(todayOrders, 'price');
+        const todayExpense = sumValues(todayExpenses, 'amount');
+        const monthlyIncome = sumValues(monthOrders, 'price');
+        const monthlyExpense = sumValues(monthExpenses, 'amount');
+        const monthlyPotongan = monthOrders.reduce((sum, order) => {
+            if (!Object.prototype.hasOwnProperty.call(order, 'fee')) {
+                return sum;
+            }
+            return sum + (parseFloat(order.fee) || 0);
+        }, 0);
 
-            const totalIncome = (ordersData || []).reduce(
-                (sum, order) => sum + (parseFloat(order.price) || 0),
-                0
-            );
-            const totalExpense = (expensesData || []).reduce(
-                (sum, expense) => sum + (parseFloat(expense.amount) || 0),
-                0
-            );
-            setTodayRecap({
-                income: totalIncome,
-                expense: totalExpense,
-                net: totalIncome - totalExpense
-            });
-        } catch (error) {
-            console.error('Error fetching today recap:', error);
-        }
+        return {
+            todayIncome,
+            todayExpense,
+            todayNet: todayIncome - todayExpense,
+            monthlyIncome,
+            monthlyExpense,
+            monthlyNet: monthlyIncome - monthlyExpense,
+            monthlyPotongan,
+            monthOrders,
+            monthExpenses
+        };
     };
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const now = new Date();
-            // Mengambil range bulan ini untuk statistik
-            const startMonth = startOfMonth(now).toISOString();
-            const endMonth = endOfMonth(now).toISOString();
+            const { startMonth } = getLocalDateRanges();
+            const startMonthIso = startMonth.toISOString();
 
             const { data: ordersData, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
-                .gte('created_at', startMonth)
-                .lte('created_at', endMonth)
+                .gte('created_at', startMonthIso)
                 .order('created_at', { ascending: false });
 
             if (ordersError) throw ordersError;
 
+            console.log('Total Orders Fetched:', ordersData?.length ?? 0);
+
             const { data: expensesData, error: expensesError } = await supabase
                 .from('expenses')
                 .select('*')
-                .gte('created_at', startMonth)
-                .lte('created_at', endMonth)
+                .gte('created_at', startMonthIso)
                 .order('created_at', { ascending: false });
 
             if (expensesError) throw expensesError;
@@ -145,38 +159,44 @@ export default function Riwayat({ session }) {
     };
 
     const processFinancials = (orders, expenses) => {
-        const totalIncome = orders.reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
-        const totalExpenses = expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-        const cashBalance = totalIncome - totalExpenses;
+        const {
+            todayIncome,
+            todayExpense,
+            todayNet,
+            monthlyIncome,
+            monthlyExpense,
+            monthlyNet,
+            monthlyPotongan,
+            monthOrders,
+            monthExpenses
+        } = calculateFinancials(orders, expenses);
+
+        setTodayRecap({
+            income: todayIncome,
+            expense: todayExpense,
+            net: todayNet
+        });
         
         // Kalkulasi Estimasi (Bensin & Potongan)
-        const commissionRate = settings.defaultCommission ?? 0;
-        const totalAppFee = orders.reduce((sum, order) => {
-            const netValue = parseFloat(order.price) || 0;
-            if (commissionRate <= 0 || commissionRate >= 1) return sum;
-            const estimatedGross = netValue / (1 - commissionRate);
-            return sum + (estimatedGross - netValue);
-        }, 0);
-        
-        const totalFuelCost = orders.reduce((sum, order) => {
+        const totalFuelCost = monthOrders.reduce((sum, order) => {
             const distance = parseFloat(order.distance) || 0;
             return sum + distance * (settings.fuelEfficiency || 0);
         }, 0);
 
         let efficiency = 0;
-        if (totalIncome > 0) {
-            efficiency = (cashBalance / totalIncome) * 100;
+        if (monthlyIncome > 0) {
+            efficiency = (monthlyNet / monthlyIncome) * 100;
         }
 
         setMetrics({
-            grossIncome: totalIncome,
-            actualExpenses: totalExpenses,
-            netCash: cashBalance,
+            grossIncome: monthlyIncome,
+            actualExpenses: monthlyExpense,
+            netCash: monthlyNet,
             efficiencyScore: efficiency,
-            appFeeTotal: totalAppFee,
+            appFeeTotal: monthlyPotongan,
             fuelCostTotal: totalFuelCost,
-            ordersCount: orders.length,
-            expensesCount: expenses.length
+            ordersCount: monthOrders.length,
+            expensesCount: monthExpenses.length
         });
 
         // Data Chart 7 Hari Terakhir
@@ -189,18 +209,12 @@ export default function Riwayat({ session }) {
             };
         });
 
-        const parseDate = (value) => {
-            if (!value) return null;
-            const parsed = parseISO(value);
-            return isValid(parsed) ? parsed : null;
-        };
-
         const chart = last7Days.map(day => {
-            const dayOrders = orders.filter((o) => {
+            const dayOrders = monthOrders.filter((o) => {
                 const orderDate = parseDate(o.created_at);
                 return orderDate ? isSameDay(orderDate, day.date) : false;
             });
-            const dayExpenses = expenses.filter((e) => {
+            const dayExpenses = monthExpenses.filter((e) => {
                 const expenseDate = parseDate(e.created_at);
                 return expenseDate ? isSameDay(expenseDate, day.date) : false;
             });
@@ -211,15 +225,15 @@ export default function Riwayat({ session }) {
         setChartData(chart);
 
         const combined = [
-            ...orders.map(o => ({ ...o, type: 'income', displayAmount: o.price })),
-            ...expenses.map(e => ({ ...e, type: 'expense', displayAmount: e.amount }))
+            ...monthOrders.map(o => ({ ...o, type: 'income', displayAmount: o.price })),
+            ...monthExpenses.map(e => ({ ...e, type: 'expense', displayAmount: e.amount }))
         ].sort((a, b) => {
             const dateA = parseDate(a.created_at);
             const dateB = parseDate(b.created_at);
             return (dateB?.getTime() || 0) - (dateA?.getTime() || 0);
         });
 
-        setTransactions(combined);
+        setTransactions(combined.slice(0, 50));
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('id-ID').format(val);
@@ -254,7 +268,6 @@ export default function Riwayat({ session }) {
             const { error } = await supabase.from(table).delete().eq('id', deleteTargetId);
             if (error) throw error;
             await fetchData();
-            await fetchTodayRecap();
             closeDeleteModal();
             showToast('Data berhasil dihapus!', 'success');
         } catch (error) {
@@ -285,7 +298,6 @@ export default function Riwayat({ session }) {
             if (error) throw error;
 
             await fetchData();
-            await fetchTodayRecap();
 
             setEditingOrder(null);
             showToast('Data berhasil disimpan!', 'success');
@@ -317,7 +329,6 @@ export default function Riwayat({ session }) {
             if (error) throw error;
 
             await fetchData();
-            await fetchTodayRecap();
 
             setShowExpenseModal(false);
             showToast('Data berhasil disimpan!', 'success');
