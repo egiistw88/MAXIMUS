@@ -128,12 +128,18 @@ export default function Riwayat({ session }) {
     const fetchData = async () => {
         try {
             setLoading(true);
+            if (!session?.user) {
+                setLoading(false);
+                return;
+            }
+            const userIdColumn = 'user_id';
             const { startMonth } = getLocalDateRanges();
             const startMonthIso = startMonth.toISOString();
 
             const { data: ordersData, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
+                .eq(userIdColumn, session.user.id)
                 .gte('created_at', startMonthIso)
                 .order('created_at', { ascending: false });
 
@@ -144,6 +150,7 @@ export default function Riwayat({ session }) {
             const { data: expensesData, error: expensesError } = await supabase
                 .from('expenses')
                 .select('*')
+                .eq(userIdColumn, session.user.id)
                 .gte('created_at', startMonthIso)
                 .order('created_at', { ascending: false });
 
