@@ -9,19 +9,34 @@ import {
     ResponsiveContainer,
     Cell
 } from 'recharts';
-import { format, subDays, startOfMonth, endOfMonth, isSameDay, parseISO, isValid } from 'date-fns';
+import {
+    format,
+    subDays,
+    startOfMonth,
+    endOfMonth,
+    isSameDay,
+    parseISO,
+    isValid,
+    startOfDay,
+    endOfDay
+} from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Plus, Minus, TrendingUp, TrendingDown, Wallet, AlertCircle } from 'lucide-react';
-import ExpenseModal from './ExpenseModal';
+import ExpenseModal from '../components/ExpenseModal';
 import { motion } from 'framer-motion';
 
-export default function DailyRecap({ session }) {
+export default function Riwayat({ session }) {
     const { settings } = useSettings();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [chartData, setChartData] = useState([]);
     const [activeRecap, setActiveRecap] = useState('omzet');
+    const [todayRecap, setTodayRecap] = useState({
+        income: 0,
+        expense: 0,
+        net: 0
+    });
 
     const [metrics, setMetrics] = useState({
         grossIncome: 0,
@@ -37,6 +52,50 @@ export default function DailyRecap({ session }) {
     useEffect(() => {
         fetchData();
     }, [session, settings.defaultCommission, settings.fuelEfficiency]);
+
+    useEffect(() => {
+        fetchTodayRecap();
+    }, [session]);
+
+    const fetchTodayRecap = async () => {
+        try {
+            const now = new Date();
+            const startToday = startOfDay(now).toISOString();
+            const endToday = endOfDay(now).toISOString();
+
+            const { data: expensesData, error: expensesError } = await supabase
+                .from('expenses')
+                .select('*')
+                .gte('date', startToday)
+                .lte('date', endToday);
+
+            if (expensesError) throw expensesError;
+
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('*')
+                .gte('created_at', startToday)
+                .lte('created_at', endToday);
+
+            if (ordersError) throw ordersError;
+
+            const totalIncome = (ordersData || []).reduce(
+                (sum, order) => sum + (parseFloat(order.price) || 0),
+                0
+            );
+            const totalExpense = (expensesData || []).reduce(
+                (sum, expense) => sum + (parseFloat(expense.amount) || 0),
+                0
+            );
+            setTodayRecap({
+                income: totalIncome,
+                expense: totalExpense,
+                net: totalIncome - totalExpense
+            });
+        } catch (error) {
+            console.error('Error fetching today recap:', error);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -203,6 +262,28 @@ export default function DailyRecap({ session }) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 space-y-6">
+                <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 p-5 rounded-2xl shadow-lg border border-emerald-400/40 text-white">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap justify-between gap-4 text-sm font-semibold">
+                            <span className="text-green-100">
+                                Pemasukan: <span className="text-white">Rp {formatCurrency(todayRecap.income)}</span>
+                            </span>
+                            <span className="text-red-200">
+                                Pengeluaran: <span className="text-white">Rp {formatCurrency(todayRecap.expense)}</span>
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs uppercase tracking-wide text-emerald-100">Siap Setor / Sisa</span>
+                            <span className="text-2xl font-extrabold">
+                                Rp {formatCurrency(todayRecap.net)}
+                            </span>
+                            {todayRecap.net < 0 && (
+                                <span className="text-xs font-semibold text-yellow-100">⚠️ Minus (Pakai Modal)</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-3">
                     <button
                         type="button"
