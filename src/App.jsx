@@ -5,7 +5,7 @@ import { supabase } from './lib/supabaseClient';
 import Auth from './components/Auth';
 import ProfitEngine from './components/ProfitEngine';
 import RealMap from './components/RealMap';
-import DailyRecap from './components/DailyRecap';
+import Riwayat from './pages/Riwayat';
 import ProfileSettings from './components/ProfileSettings';
 import BottomNavigation from './components/BottomNavigation';
 import Toast from './components/Toast';
@@ -37,7 +37,7 @@ function AnimatedRoutes({ showToast, session }) {
                     path="/history"
                     element={
                         <PageTransition>
-                            <DailyRecap showToast={showToast} session={session} />
+                            <Riwayat showToast={showToast} session={session} />
                         </PageTransition>
                     }
                 />
