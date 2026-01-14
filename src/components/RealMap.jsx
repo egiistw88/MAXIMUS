@@ -30,13 +30,19 @@ const activeStrategyIcon = L.divIcon({
     popupAnchor: [0, -10]
 });
 
-const inactiveStrategyIcon = L.divIcon({
+const createCategoryIcon = (color) => L.divIcon({
     className: 'custom-div-icon',
-    html: '<div style="background-color: #94a3b8; width: 12px; height: 12px; border-radius: 50%; opacity: 0.6; border: 1px solid white;"></div>',
-    iconSize: [12, 12],
-    iconAnchor: [6, 6],
-    popupAnchor: [0, -5]
+    html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -6]
 });
+
+const categoryIcons = {
+    Bike: createCategoryIcon('#2563eb'),
+    Food: createCategoryIcon('#f97316'),
+    Wisata: createCategoryIcon('#16a34a')
+};
 
 const BANDUNG_CENTER = [-6.9175, 107.6191];
 
@@ -81,6 +87,22 @@ export default function RealMap() {
     const [strategicSpots, setStrategicSpots] = useState([]);
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
     const [userPos, setUserPos] = useState(null);
+    const [timeTick, setTimeTick] = useState(Date.now());
+
+    const currentDate = new Date(timeTick);
+    const currentHour = currentDate.getHours();
+    const isWeekend = [0, 6].includes(currentDate.getDay());
+
+    const filteredSpots = Array.isArray(strategicSpots)
+        ? strategicSpots.filter((spot) => {
+            if (!spot) return false;
+            if (spot.start_hour === undefined || spot.end_hour === undefined) return false;
+            const isWithinTime = spot.start_hour <= currentHour && spot.end_hour > currentHour;
+            if (!isWithinTime) return false;
+            if (spot.is_weekend_only && !isWeekend) return false;
+            return true;
+        })
+        : [];
 
     useEffect(() => {
         const fetchSpots = async () => {
@@ -146,15 +168,10 @@ export default function RealMap() {
 
     useEffect(() => {
         const updateRecommendation = () => {
-            const currentHour = new Date().getHours();
+            setTimeTick(Date.now());
 
-            const activeSpots = strategicSpots.filter((spot) => {
-                if (spot.start_hour === undefined || spot.end_hour === undefined) return false;
-                return spot.start_hour <= currentHour && spot.end_hour > currentHour;
-            });
-
-            if (activeSpots.length > 0) {
-                const spot = activeSpots
+            if (filteredSpots.length > 0) {
+                const spot = filteredSpots
                     .map((candidate) => {
                         const lat = candidate.latitude ?? candidate.lat;
                         const lng = candidate.longitude ?? candidate.lng;
@@ -165,7 +182,7 @@ export default function RealMap() {
                         };
                     })
                     .filter(Boolean)
-                    .sort((a, b) => a.distanceKm - b.distanceKm)[0]?.spot || activeSpots[0];
+                    .sort((a, b) => a.distanceKm - b.distanceKm)[0]?.spot || filteredSpots[0];
 
                 const lat = spot.latitude ?? spot.lat;
                 const lng = spot.longitude ?? spot.lng;
@@ -192,7 +209,7 @@ export default function RealMap() {
         updateRecommendation();
 
         return () => clearInterval(timer);
-    }, [strategicSpots, userPos]);
+    }, [filteredSpots, userPos, currentHour]);
 
     return (
         <div
@@ -234,38 +251,29 @@ export default function RealMap() {
                     </Marker>
                 )}
 
-                {strategicSpots.map((spot) => {
+                {filteredSpots.map((spot) => {
                     const lat = spot.latitude ?? spot.lat;
                     const lng = spot.longitude ?? spot.lng;
 
                     if (lat == null || lng == null) return null;
 
-                    const currentHour = new Date().getHours();
-                    const isActive = (spot.start_hour !== undefined && spot.end_hour !== undefined)
-                        && (spot.start_hour <= currentHour && spot.end_hour > currentHour);
-
-                    const icon = isActive ? activeStrategyIcon : inactiveStrategyIcon;
+                    const categoryIcon = categoryIcons[spot.category] || activeStrategyIcon;
 
                     return (
                         <Marker
                             key={spot.id}
                             position={[lat, lng]}
-                            icon={icon}
-                            zIndexOffset={isActive ? 1000 : 0}
+                            icon={categoryIcon}
+                            zIndexOffset={1000}
                         >
                             <Popup className="custom-popup" closeButton={false}>
                                 <div className="p-1 min-w-[200px]">
-                                    <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${isActive ? 'text-yellow-600' : 'text-slate-400'}`}>
-                                        {isActive ? '🔥 ACTIVE NOW' : 'INACTIVE'}
+                                    <div className="text-xs font-bold uppercase tracking-wider mb-1 text-emerald-600">
+                                        REKOMENDASI JAM INI
                                     </div>
                                     <h3 className="font-bold text-lg text-slate-900 mb-1">{spot.name}</h3>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="px-2 py-0.5 bg-slate-100 rounded text-xs font-mono font-bold text-slate-600 border border-slate-200">
-                                            {spot.start_hour}:00 - {spot.end_hour}:00
-                                        </span>
-                                    </div>
                                     <p className="text-sm text-slate-600 leading-snug bg-slate-50 p-2 rounded border border-slate-100 italic">
-                                        "{spot.notes}"
+                                        "{spot.notes ?? 'Tidak ada catatan.'}"
                                     </p>
                                 </div>
                             </Popup>
