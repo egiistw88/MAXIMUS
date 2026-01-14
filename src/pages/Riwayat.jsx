@@ -23,6 +23,7 @@ import {
 import { id } from 'date-fns/locale';
 import { Plus, Minus, TrendingUp, TrendingDown, Wallet, AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import ExpenseModal from '../components/ExpenseModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 import EditOrderModal from '../components/EditOrderModal';
 import { motion } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
@@ -37,6 +38,8 @@ export default function Riwayat({ session }) {
     const [chartData, setChartData] = useState([]);
     const [activeRecap, setActiveRecap] = useState('omzet');
     const [editingOrder, setEditingOrder] = useState(null);
+    const [deleteTargetId, setDeleteTargetId] = useState(null);
+    const [deleteTargetType, setDeleteTargetType] = useState(null);
     
     // State untuk Rekap Harian (Setoran)
     const [todayRecap, setTodayRecap] = useState({
@@ -234,14 +237,26 @@ export default function Riwayat({ session }) {
         return { text: "Boros banget hari ini! Kurangi jajan kopi.", color: "text-red-500" };
     };
 
-    const handleDelete = async (id, type) => {
-        if (!confirm('Hapus transaksi ini?')) return;
+    const requestDelete = (id, type) => {
+        setDeleteTargetId(id);
+        setDeleteTargetType(type);
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteTargetId(null);
+        setDeleteTargetType(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTargetId || !deleteTargetType) return;
         try {
-            const table = type === 'income' ? 'orders' : 'expenses';
-            const { error } = await supabase.from(table).delete().eq('id', id);
+            const table = deleteTargetType === 'income' ? 'orders' : 'expenses';
+            const { error } = await supabase.from(table).delete().eq('id', deleteTargetId);
             if (error) throw error;
-            fetchData();
-            fetchTodayRecap(); // Refresh juga rekap harian
+            await fetchData();
+            await fetchTodayRecap();
+            closeDeleteModal();
+            showToast('Data berhasil dihapus!', 'success');
         } catch (error) {
             console.error('Error deleting transaction:', error);
             showToast('Terjadi kesalahan: ' + (error.message || 'Gagal menghapus transaksi.'), 'error');
@@ -559,7 +574,7 @@ export default function Riwayat({ session }) {
                                             )}
                                             <button 
                                                 type="button"
-                                                onClick={() => handleDelete(t.id, t.type)}
+                                                onClick={() => requestDelete(t.id, t.type)}
                                                 className="text-xs text-gray-300 hover:text-red-400 flex items-center gap-1"
                                             >
                                                <Trash2 size={12} /> Hapus
@@ -594,6 +609,15 @@ export default function Riwayat({ session }) {
                 onClose={() => setEditingOrder(null)}
                 order={editingOrder}
                 onSave={handleUpdateOrder}
+            />
+
+            <ConfirmationModal
+                isOpen={Boolean(deleteTargetId)}
+                onClose={closeDeleteModal}
+                onConfirm={confirmDelete}
+                title="Hapus Transaksi?"
+                message="Apakah Anda yakin ingin menghapus data ini? Data tidak dapat dikembalikan."
+                isDestructive={true}
             />
         </div>
     );
