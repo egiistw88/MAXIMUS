@@ -134,6 +134,12 @@ export default function RealMap() {
         };
 
         fetchSpots();
+
+        const pollInterval = setInterval(fetchSpots, 300000);
+
+        return () => {
+            clearInterval(pollInterval);
+        };
     }, []);
 
     useEffect(() => {
