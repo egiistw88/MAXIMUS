@@ -33,6 +33,7 @@ export default function Riwayat({ session }) {
     const { showToast } = useToast();
     const user = session?.user;
     const [transactions, setTransactions] = useState([]);
+    const [visibleCount, setVisibleCount] = useState(20);
     const [loading, setLoading] = useState(true);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [chartData, setChartData] = useState([]);
@@ -40,6 +41,7 @@ export default function Riwayat({ session }) {
     const [editingOrder, setEditingOrder] = useState(null);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
     const [deleteTargetType, setDeleteTargetType] = useState(null);
+    const pageSize = 20;
     
     // State untuk Rekap Harian (Setoran)
     const [todayRecap, setTodayRecap] = useState({
@@ -249,7 +251,8 @@ export default function Riwayat({ session }) {
             return (dateB?.getTime() || 0) - (dateA?.getTime() || 0);
         });
 
-        setTransactions(combined.slice(0, 50));
+        setTransactions(combined);
+        setVisibleCount(pageSize);
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('id-ID').format(val);
@@ -355,6 +358,12 @@ export default function Riwayat({ session }) {
     };
 
     const insight = getInsight();
+    const visibleTransactions = transactions.slice(0, visibleCount);
+    const canLoadMore = visibleCount < transactions.length;
+
+    const handleLoadMore = () => {
+        setVisibleCount((prev) => Math.min(prev + pageSize, transactions.length));
+    };
 
     if (loading) {
         return (
@@ -561,12 +570,12 @@ export default function Riwayat({ session }) {
                 <div className="pb-10">
                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 px-1">Riwayat Transaksi</h3>
                     <div className="space-y-3">
-                        {transactions.length === 0 ? (
+                        {visibleTransactions.length === 0 ? (
                             <div className="text-center py-8 text-gray-400 text-sm">
                                 Belum ada data hari ini.
                             </div>
                         ) : (
-                            transactions.map((t) => (
+                            visibleTransactions.map((t) => (
                                 <div key={`${t.type}-${t.id}`} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex justify-between items-center">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-full ${
@@ -612,6 +621,17 @@ export default function Riwayat({ session }) {
                             ))
                         )}
                     </div>
+                    {canLoadMore && (
+                        <div className="flex justify-center pt-4">
+                            <button
+                                type="button"
+                                onClick={handleLoadMore}
+                                className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                            >
+                                Muat lebih banyak
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
