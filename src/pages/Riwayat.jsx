@@ -103,6 +103,7 @@ export default function Riwayat({ session }) {
         );
         const monthOrders = orders;
         const monthExpenses = expenses;
+        const commissionRate = parseFloat(settings.defaultCommission) || 0;
 
         const sumValues = (items, key) =>
             items.reduce((sum, item) => sum + (parseFloat(item[key]) || 0), 0);
@@ -112,10 +113,11 @@ export default function Riwayat({ session }) {
         const monthlyIncome = sumValues(monthOrders, 'price');
         const monthlyExpense = sumValues(monthExpenses, 'amount');
         const monthlyPotongan = monthOrders.reduce((sum, order) => {
-            if (!Object.prototype.hasOwnProperty.call(order, 'fee')) {
-                return sum;
-            }
-            return sum + (parseFloat(order.fee) || 0);
+            const hasFee = Object.prototype.hasOwnProperty.call(order, 'fee');
+            const feeValue = hasFee && order.fee !== null
+                ? (parseFloat(order.fee) || 0)
+                : (parseFloat(order.price) || 0) * commissionRate;
+            return sum + feeValue;
         }, 0);
 
         return {
