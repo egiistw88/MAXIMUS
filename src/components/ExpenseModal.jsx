@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, DollarSign } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
 
-export default function ExpenseModal({ isOpen, onClose, onExpenseAdded, session }) {
+export default function ExpenseModal({ isOpen, onClose, onSave }) {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('Bensin');
     const [note, setNote] = useState('');
@@ -22,24 +21,15 @@ export default function ExpenseModal({ isOpen, onClose, onExpenseAdded, session 
 
         setIsSubmitting(true);
         try {
-            const { error } = await supabase
-                .from('expenses')
-                .insert([
-                    {
-                        user_id: session.user.id,
-                        amount: parseFloat(amount),
-                        category,
-                        note,
-                        created_at: new Date().toISOString()
-                    }
-                ]);
-
-            if (error) throw error;
-
+            await onSave({
+                amount,
+                category,
+                description: note,
+                note
+            });
             setAmount('');
             setNote('');
             setCategory('Bensin');
-            onExpenseAdded(); // Refresh parent data
             onClose();
 
         } catch (error) {

@@ -28,6 +28,7 @@ import { motion } from 'framer-motion';
 
 export default function Riwayat({ session }) {
     const { settings } = useSettings();
+    const user = session?.user;
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -274,6 +275,38 @@ export default function Riwayat({ session }) {
         } catch (error) {
             console.error('Gagal update:', error);
             alert('Gagal update: ' + (error.message || "Terjadi kesalahan sistem"));
+        }
+    };
+
+    const handleSaveExpense = async (expenseData) => {
+        if (!user) {
+            alert("Sesi habis. Silakan login ulang.");
+            return;
+        }
+
+        try {
+            console.log("Mengirim data pengeluaran:", expenseData);
+
+            const { error } = await supabase
+                .from('expenses')
+                .insert([{
+                    user_id: user.id,
+                    amount: parseFloat(expenseData.amount || expenseData.price || 0),
+                    category: expenseData.category || 'Lainnya',
+                    description: expenseData.description || expenseData.note || '',
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (error) throw error;
+
+            await fetchData();
+            await fetchTodayRecap();
+
+            setShowExpenseModal(false);
+            alert('✅ Pengeluaran berhasil disimpan!');
+        } catch (error) {
+            console.error('Gagal simpan pengeluaran:', error);
+            alert('Gagal menyimpan: ' + (error.message || JSON.stringify(error)));
         }
     };
 
@@ -551,10 +584,7 @@ export default function Riwayat({ session }) {
             <ExpenseModal
                 isOpen={showExpenseModal}
                 onClose={() => setShowExpenseModal(false)}
-                onSave={() => {
-                    fetchData();
-                    fetchTodayRecap(); // Update saldo bersih setelah nambah pengeluaran
-                }}
+                onSave={handleSaveExpense}
             />
 
             <EditOrderModal
