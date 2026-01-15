@@ -30,6 +30,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
     const [price, setPrice] = useState('');
     const [distance, setDistance] = useState('');
     const [createdAt, setCreatedAt] = useState('');
+    const [createdAtError, setCreatedAtError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const title = useMemo(() => (order ? `Edit Order #${order.id}` : 'Edit Order'), [order]);
@@ -39,11 +40,29 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
         setPrice(order.net_profit?.toString() ?? order.price?.toString() ?? '');
         setDistance(order.distance?.toString() ?? '');
         setCreatedAt(formatLocalDateTime(order.created_at));
+        setCreatedAtError(false);
     }, [isOpen, order]);
+
+    const handleCreatedAtChange = (event) => {
+        const { value } = event.target;
+        setCreatedAt(value);
+        if (createdAtError && formatUtcDateTime(value)) {
+            setCreatedAtError(false);
+        }
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (!order || isSubmitting) return;
+
+        const formattedCreatedAt = formatUtcDateTime(createdAt);
+        if (!formattedCreatedAt) {
+            setCreatedAtError(true);
+            if (showToast) {
+                showToast('Tanggal & waktu wajib diisi dengan benar.', 'error');
+            }
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -52,7 +71,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
                 price: price ? parseFloat(price) : 0,
                 net_profit: price ? parseFloat(price) : 0,
                 distance: distance ? parseFloat(distance) : 0,
-                created_at: formatUtcDateTime(createdAt)
+                created_at: formattedCreatedAt
             };
 
             await onSave(updatedOrder);
@@ -131,8 +150,12 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
                                     <input
                                         type="datetime-local"
                                         value={createdAt}
-                                        onChange={(event) => setCreatedAt(event.target.value)}
-                                        className="w-full pl-9 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
+                                        onChange={handleCreatedAtChange}
+                                        className={`w-full pl-9 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border outline-none text-sm dark:text-gray-100 ${
+                                            createdAtError
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-400'
+                                                : 'border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow'
+                                        }`}
                                         required
                                     />
                                 </div>
