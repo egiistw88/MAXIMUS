@@ -94,6 +94,7 @@ export default function ProfitEngine({ showToast, session }) {
                         net_profit: estimatedNetProfit,
                         distance: distanceValue,
                         fuel_cost: fuelCost,
+                        maintenance_fee: maintenance,
                         fuel_efficiency_at_time: settings.fuelEfficiency,
                         // created_at is default now() in DB
                     },
