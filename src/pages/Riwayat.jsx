@@ -61,6 +61,7 @@ export default function Riwayat({ session }) {
         efficiencyScore: 0,
         appFeeTotal: 0,
         fuelCostTotal: 0,
+        maintenanceTotal: 0,
         ordersCount: 0,
         expensesCount: 0
     });
@@ -74,7 +75,7 @@ export default function Riwayat({ session }) {
         return () => {
             isMounted = false;
         };
-    }, [session, settings.defaultCommission, settings.fuelEfficiency]);
+    }, [session, settings.defaultCommission, settings.fuelEfficiency, settings.maintenanceFee]);
 
     const parseDate = (value) => {
         if (!value) return null;
@@ -157,6 +158,12 @@ export default function Riwayat({ session }) {
             ? storedEfficiency
             : parseFloat(settings.fuelEfficiency) || 0;
         return distance * efficiency;
+    };
+
+    const getMaintenanceCost = (order) => {
+        const storedMaintenance = parseFloat(order.maintenance_fee ?? order.maintenance_cost);
+        if (Number.isFinite(storedMaintenance)) return storedMaintenance;
+        return parseFloat(settings.maintenanceFee) || 0;
     };
 
     const getUpdatedFinancials = (order) => {
@@ -285,6 +292,7 @@ export default function Riwayat({ session }) {
         
         // Kalkulasi Estimasi (Bensin & Potongan)
         const totalFuelCost = monthOrders.reduce((sum, order) => sum + getFuelCost(order), 0);
+        const totalMaintenanceCost = monthOrders.reduce((sum, order) => sum + getMaintenanceCost(order), 0);
 
         let efficiency = 0;
         if (monthlyGross > 0) {
@@ -299,6 +307,7 @@ export default function Riwayat({ session }) {
             efficiencyScore: efficiency,
             appFeeTotal: monthlyPotongan,
             fuelCostTotal: totalFuelCost,
+            maintenanceTotal: totalMaintenanceCost,
             ordersCount: monthOrders.length,
             expensesCount: monthExpenses.length
             });
@@ -615,7 +624,7 @@ export default function Riwayat({ session }) {
                             <div>
                                 <SectionTitle className="text-[10px] tracking-[0.25em] text-ui-inverse/70">Potongan</SectionTitle>
                                 <p className="text-sm font-bold text-ui-primary truncate">
-                                    {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal)}
+                                    {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal + metrics.maintenanceTotal)}
                                 </p>
                             </div>
                         </button>
@@ -676,6 +685,12 @@ export default function Riwayat({ session }) {
                                 <span className="text-ui-muted">Estimasi Bensin</span>
                                 <span className="font-semibold text-ui-danger">
                                     -{formatCurrency(metrics.fuelCostTotal)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-ui-muted">Estimasi Maintenance</span>
+                                <span className="font-semibold text-ui-danger">
+                                    -{formatCurrency(metrics.maintenanceTotal)}
                                 </span>
                             </div>
                         </div>
