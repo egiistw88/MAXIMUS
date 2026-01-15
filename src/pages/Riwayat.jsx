@@ -504,7 +504,7 @@ export default function Riwayat({ session }) {
         <div className="flex flex-col h-full bg-ui-background pb-24 relative">
             <div className="px-5 pt-6 pb-2">
                 <h1 className="text-2xl font-bold text-ui-text font-display">Financial Board</h1>
-                <p className="text-xs text-ui-muted">Liputan Keuangan Bulan Ini</p>
+                <SectionTitle className="text-[10px] tracking-[0.3em]">Liputan Keuangan Bulan Ini</SectionTitle>
             </div>
 
             {/* Insight Harian */}
@@ -520,91 +520,97 @@ export default function Riwayat({ session }) {
             <div className="flex-1 overflow-y-auto px-5 space-y-6">
                 
                 {/* --- KARTU REKAP HARIAN (SETORAN) --- */}
-                <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 p-5 rounded-ui-xl shadow-ui-lg border border-emerald-400/40 text-white">
+                <Card className="bg-gradient-to-br from-ui-success via-ui-primary to-ui-info p-5 text-ui-inverse border-ui-success/40 shadow-ui-lg">
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-wrap justify-between gap-4 text-sm font-semibold">
-                            <span className="text-green-100">
-                                Pemasukan: <span className="text-white">Rp {formatCurrency(todayRecap.income)}</span>
+                            <span className="text-ui-inverse/80">
+                                Pemasukan: <span className="text-ui-inverse">Rp {formatCurrency(todayRecap.income)}</span>
                             </span>
-                            <span className="text-red-200">
-                                Pengeluaran: <span className="text-white">Rp {formatCurrency(todayRecap.expense)}</span>
+                            <span className="text-ui-inverse/70">
+                                Pengeluaran: <span className="text-ui-inverse">Rp {formatCurrency(todayRecap.expense)}</span>
                             </span>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs uppercase tracking-wide text-emerald-100">Siap Setor / Sisa Hari Ini</span>
+                            <SectionTitle className="text-ui-inverse/70">Siap Setor / Sisa Hari Ini</SectionTitle>
                             <span className="text-3xl font-extrabold tracking-tight">
                                 Rp {formatCurrency(todayRecap.net)}
                             </span>
                             {todayRecap.net < 0 && (
-                                <span className="inline-block bg-red-600/30 px-2 py-1 rounded text-xs font-bold text-white border border-red-400/50 w-fit">
+                                <span className="inline-block bg-ui-danger/20 px-2 py-1 rounded-ui-sm text-xs font-bold text-ui-inverse border border-ui-danger/40 w-fit">
                                     ⚠️ Minus (Pakai Modal)
                                 </span>
                             )}
                         </div>
                     </div>
-                </div>
+                </Card>
 
                 {/* --- TOMBOL TAB STATISTIK --- */}
                 <div className="grid grid-cols-3 gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setActiveRecap('omzet')}
-                        className={`bg-ui-surface p-3 rounded-ui-xl shadow-ui-sm border flex flex-col justify-between h-24 text-left transition ${
-                            activeRecap === 'omzet'
-                                ? 'border-green-400 ring-1 ring-green-200 dark:ring-green-500/40'
-                                : 'border-ui-border'
-                        }`}
+                    <Card
+                        className={`p-0 ${activeRecap === 'omzet'
+                            ? 'border-ui-success/40 ring-1 ring-ui-success/20'
+                            : ''}`}
                     >
-                        <div className="p-1.5 bg-green-50 rounded-ui-sm w-fit">
-                            <TrendingUp size={16} className="text-green-600" />
-                        </div>
-                        <div>
-                            <SectionTitle className="text-[10px] tracking-[0.25em]">Omzet (Gross)</SectionTitle>
-                            <p className="text-sm font-bold text-ui-text truncate">
-                                {formatCurrency(metrics.grossIncome)}
-                            </p>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveRecap('omzet')}
+                            className="flex h-full w-full flex-col justify-between p-3 text-left"
+                        >
+                            <div className="p-1.5 bg-ui-success/10 rounded-ui-sm w-fit">
+                                <TrendingUp size={16} className="text-ui-success" />
+                            </div>
+                            <div>
+                                <SectionTitle className="text-[10px] tracking-[0.25em]">Omzet (Gross)</SectionTitle>
+                                <p className="text-sm font-bold text-ui-text truncate">
+                                    {formatCurrency(metrics.grossIncome)}
+                                </p>
+                            </div>
+                        </button>
+                    </Card>
 
-                    <button
-                        type="button"
-                        onClick={() => setActiveRecap('pengeluaran')}
-                        className={`bg-ui-surface p-3 rounded-ui-xl shadow-ui-sm border flex flex-col justify-between h-24 text-left transition ${
-                            activeRecap === 'pengeluaran'
-                                ? 'border-red-400 ring-1 ring-red-200 dark:ring-red-500/40'
-                                : 'border-ui-border'
-                        }`}
+                    <Card
+                        className={`p-0 ${activeRecap === 'pengeluaran'
+                            ? 'border-ui-danger/40 ring-1 ring-ui-danger/20'
+                            : ''}`}
                     >
-                        <div className="p-1.5 bg-red-50 rounded-ui-sm w-fit">
-                            <TrendingDown size={16} className="text-red-600" />
-                        </div>
-                        <div>
-                            <SectionTitle className="text-[10px] tracking-[0.25em]">Pengeluaran</SectionTitle>
-                            <p className="text-sm font-bold text-ui-text truncate">
-                                {formatCurrency(metrics.actualExpenses)}
-                            </p>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveRecap('pengeluaran')}
+                            className="flex h-full w-full flex-col justify-between p-3 text-left"
+                        >
+                            <div className="p-1.5 bg-ui-danger/10 rounded-ui-sm w-fit">
+                                <TrendingDown size={16} className="text-ui-danger" />
+                            </div>
+                            <div>
+                                <SectionTitle className="text-[10px] tracking-[0.25em]">Pengeluaran</SectionTitle>
+                                <p className="text-sm font-bold text-ui-text truncate">
+                                    {formatCurrency(metrics.actualExpenses)}
+                                </p>
+                            </div>
+                        </button>
+                    </Card>
 
-                    <button
-                        type="button"
-                        onClick={() => setActiveRecap('potongan')}
-                        className={`bg-ui-inverse p-3 rounded-ui-xl shadow-ui-md border flex flex-col justify-between h-24 text-left transition ${
-                            activeRecap === 'potongan'
-                                ? 'border-ui-primary ring-1 ring-ui-primary/30'
-                                : 'border-ui-border'
-                        }`}
+                    <Card
+                        className={`p-0 bg-ui-inverse ${activeRecap === 'potongan'
+                            ? 'border-ui-primary ring-1 ring-ui-primary/30'
+                            : ''}`}
                     >
-                        <div className="p-1.5 bg-white/10 rounded-ui-sm w-fit">
-                            <Wallet size={16} className="text-ui-primary" />
-                        </div>
-                        <div>
-                            <SectionTitle className="text-[10px] tracking-[0.25em] text-white/70">Potongan</SectionTitle>
-                            <p className="text-sm font-bold text-ui-primary truncate">
-                                {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal)}
-                            </p>
-                        </div>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveRecap('potongan')}
+                            className="flex h-full w-full flex-col justify-between p-3 text-left text-ui-inverse"
+                        >
+                            <div className="p-1.5 bg-ui-primary/10 rounded-ui-sm w-fit">
+                                <Wallet size={16} className="text-ui-primary" />
+                            </div>
+                            <div>
+                                <SectionTitle className="text-[10px] tracking-[0.25em] text-ui-inverse/70">Potongan</SectionTitle>
+                                <p className="text-sm font-bold text-ui-primary truncate">
+                                    {formatCurrency(metrics.appFeeTotal + metrics.fuelCostTotal)}
+                                </p>
+                            </div>
+                        </button>
+                    </Card>
                 </div>
 
                 {/* --- DETAIL STATISTIK --- */}
@@ -670,7 +676,7 @@ export default function Riwayat({ session }) {
                 {/* --- REKAP HARIAN --- */}
                 <Card className="p-4">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-ui-text">Rekap Harian Bulan Ini</h3>
+                        <SectionTitle className="text-[10px] tracking-[0.25em]">Rekap Harian Bulan Ini</SectionTitle>
                         <span className="text-xs text-ui-muted">Arus kas per hari</span>
                     </div>
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
@@ -711,7 +717,7 @@ export default function Riwayat({ session }) {
 
                 {/* --- CHART 7 HARI --- */}
                 <Card className="p-4">
-                   <h3 className="text-sm font-bold text-ui-text mb-4">Tren 7 Hari Terakhir</h3>
+                   <SectionTitle className="mb-4 text-[10px] tracking-[0.25em]">Tren 7 Hari Terakhir</SectionTitle>
                    <div className="h-40 w-full">
                      <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
@@ -737,7 +743,7 @@ export default function Riwayat({ session }) {
 
                 {/* --- DAFTAR TRANSAKSI --- */}
                 <div className="pb-10">
-                    <h3 className="text-sm font-bold text-ui-text mb-3 px-1">Riwayat Transaksi</h3>
+                    <SectionTitle className="mb-3 px-1 text-[10px] tracking-[0.25em]">Riwayat Transaksi</SectionTitle>
                     <div className="space-y-3">
                         {visibleTransactions.length === 0 ? (
                             <div className="text-center py-8 text-ui-muted text-sm">
@@ -806,12 +812,14 @@ export default function Riwayat({ session }) {
 
             {/* Tombol Tambah Pengeluaran */}
             <div className="absolute bottom-6 right-5 z-20">
-                <button
+                <PrimaryButton
+                    type="button"
                     onClick={() => setShowExpenseModal(true)}
-                    className="bg-ui-danger hover:bg-ui-danger/90 text-white p-4 rounded-full shadow-ui-lg transition-all active:scale-95 flex items-center gap-2"
+                    className="bg-ui-danger hover:bg-ui-danger/90 text-ui-inverse p-4 rounded-full shadow-ui-lg transition-all active:scale-95 flex items-center gap-2"
+                    aria-label="Tambah pengeluaran"
                 >
                     <Minus size={24} />
-                </button>
+                </PrimaryButton>
             </div>
 
             <ExpenseModal

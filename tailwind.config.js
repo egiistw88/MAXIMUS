@@ -21,11 +21,7 @@ export default {
                 "ui-warning": "var(--ui-color-warning)",
                 "ui-info": "var(--ui-color-info)",
                 "ui-inverse": "var(--ui-color-inverse)",
-                "maxim-yellow": "#FFD700",
-                "maxim-dark": "#1F2937",
-                "maxim-gray": "#6B7280",
-                "maxim-bg": "#F3F4F6",
-                "maxim-white": "#FFFFFF",
+                "ui-overlay": "var(--ui-color-overlay)",
             },
             fontFamily: {
                 sans: ['var(--ui-font-body)'],

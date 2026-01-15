@@ -58,7 +58,7 @@ function AnimatedRoutes({ showToast, session }) {
 function AppShell({ showToast, session }) {
     return (
         <div
-            className="bg-maxim-bg text-maxim-dark font-sans"
+            className="bg-ui-background text-ui-text font-sans"
             style={{
                 '--bottom-nav-height': '64px',
                 '--bottom-nav-offset': 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))',
@@ -80,18 +80,18 @@ function AppContent({ session, loading }) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-maxim-bg">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-maxim-dark"></div>
+            <div className="flex items-center justify-center min-h-screen bg-ui-background">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ui-text"></div>
             </div>
         );
     }
 
     if (!isSupabaseConfigured) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-maxim-bg p-6">
-                <div className="w-full max-w-lg rounded-2xl border border-yellow-200 bg-yellow-50 p-6 text-center text-yellow-900 shadow-sm">
-                    <h1 className="text-xl font-semibold mb-2">Konfigurasi Supabase belum lengkap</h1>
-                    <p className="text-sm text-yellow-800">
+            <div className="flex items-center justify-center min-h-screen bg-ui-background p-6">
+                <div className="w-full max-w-lg rounded-ui-xl border border-ui-warning/40 bg-ui-warning/10 p-6 text-center text-ui-warning shadow-ui-sm">
+                    <h1 className="text-xl font-semibold mb-2 text-ui-text">Konfigurasi Supabase belum lengkap</h1>
+                    <p className="text-sm text-ui-warning">
                         {supabaseConfigError ||
                             'Tambahkan VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di file .env agar autentikasi aktif.'}
                     </p>

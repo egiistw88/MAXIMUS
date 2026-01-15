@@ -46,10 +46,10 @@ export default function ConfirmationModal({
                             <button
                                 type="button"
                                 onClick={onConfirm}
-                                className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] ${
+                                className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-ui-sm transition active:scale-[0.98] ${
                                     isDestructive
-                                        ? 'bg-red-500 hover:bg-red-600'
-                                        : 'bg-maxim-dark hover:bg-black dark:bg-maxim-yellow dark:text-black dark:hover:bg-yellow-400'
+                                        ? 'bg-ui-danger text-ui-inverse hover:bg-ui-danger/90'
+                                        : 'bg-ui-primary text-ui-text hover:bg-ui-primary-strong'
                                 }`}
                             >
                                 {confirmLabel}

@@ -19,6 +19,7 @@
     --ui-color-warning: #f59e0b;
     --ui-color-info: #2563eb;
     --ui-color-inverse: #111827;
+    --ui-color-overlay: rgba(15, 23, 42, 0.8);
 
     --ui-radius-sm: 0.5rem;
     --ui-radius-md: 0.75rem;
@@ -44,6 +45,7 @@
     --ui-color-muted: #9ca3af;
     --ui-color-border: #1f2937;
     --ui-color-inverse: #f9fafb;
+    --ui-color-overlay: rgba(15, 23, 42, 0.8);
   }
 }
 

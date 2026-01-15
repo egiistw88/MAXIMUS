@@ -139,7 +139,7 @@ export default function ProfitEngine({ showToast, session }) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setShowSuccess(false)}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-ui-overlay backdrop-blur-sm cursor-pointer"
                     >
                         <div className="text-center">
                             <motion.div
@@ -232,7 +232,7 @@ export default function ProfitEngine({ showToast, session }) {
                             onClick={() => setIsPriority(!isPriority)}
                             className={`w-12 h-6 rounded-full transition-colors relative ${isPriority ? 'bg-ui-primary' : 'bg-ui-surface-muted'}`}
                         >
-                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform transform ${isPriority ? 'translate-x-7' : 'translate-x-1'}`} />
+                            <div className={`w-4 h-4 rounded-full bg-ui-surface absolute top-1 transition-transform transform ${isPriority ? 'translate-x-7' : 'translate-x-1'}`} />
                         </button>
                     </div>
                 </Card>
