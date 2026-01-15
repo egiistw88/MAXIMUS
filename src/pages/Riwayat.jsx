@@ -147,6 +147,18 @@ export default function Riwayat({ session }) {
         return gross * rate;
     };
 
+    const getFuelCost = (order) => {
+        const storedFuelCost = parseFloat(order.fuel_cost);
+        if (Number.isFinite(storedFuelCost)) return storedFuelCost;
+        const distance = parseFloat(order.distance);
+        if (!Number.isFinite(distance)) return 0;
+        const storedEfficiency = parseFloat(order.fuel_efficiency_at_time);
+        const efficiency = Number.isFinite(storedEfficiency)
+            ? storedEfficiency
+            : parseFloat(settings.fuelEfficiency) || 0;
+        return distance * efficiency;
+    };
+
     const getUpdatedFinancials = (order) => {
         const grossFromOrder = parseFloat(order.gross_price);
         const fallbackGross = parseFloat(order.price);
@@ -272,10 +284,7 @@ export default function Riwayat({ session }) {
         }
         
         // Kalkulasi Estimasi (Bensin & Potongan)
-        const totalFuelCost = monthOrders.reduce((sum, order) => {
-            const distance = parseFloat(order.distance) || 0;
-            return sum + distance * (settings.fuelEfficiency || 0);
-        }, 0);
+        const totalFuelCost = monthOrders.reduce((sum, order) => sum + getFuelCost(order), 0);
 
         let efficiency = 0;
         if (monthlyGross > 0) {
