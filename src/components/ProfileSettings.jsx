@@ -3,24 +3,24 @@ import { User, Car, Settings as SettingsIcon, Moon, Sun, ChevronDown, Cloud } fr
 import { useSettings } from '../context/SettingsContext';
 import { supabase } from '../lib/supabaseClient';
 
-// Simple debounce helper
-const debounce = (func, wait) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
-};
-
 export default function ProfileSettings({ session, showToast }) {
     const { settings, updateSettings } = useSettings();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const settingsRef = useRef(settings);
+    const saveTimeoutRef = useRef(null);
 
     useEffect(() => {
         settingsRef.current = settings;
     }, [settings]);
+
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Fetch profile from Supabase on mount
     useEffect(() => {
@@ -63,8 +63,11 @@ export default function ProfileSettings({ session, showToast }) {
 
     // Debounced save to Supabase
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const saveToCloud = useCallback(
-        debounce(async (newSettings) => {
+    const saveToCloud = useCallback((newSettings) => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(async () => {
             if (!session || !session.user) {
                 if (showToast) {
                     showToast('Sesi tidak ditemukan. Silakan login ulang.', 'error');
@@ -107,9 +110,8 @@ export default function ProfileSettings({ session, showToast }) {
             } finally {
                 setSaving(false);
             }
-        }, 1000),
-        [saving, session, showToast]
-    );
+        }, 1000);
+    }, [saving, session, showToast]);
 
     // Wrapper to update both Local Context and Cloud
     const handleUpdate = (updates) => {
