@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Clock, MapPin, Navigation2, Save, X } from 'lucide-react';
+import { Clock, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const parseLocalDateTime = (value) => {
@@ -29,8 +29,6 @@ const formatUtcDateTime = (value) => {
 export default function EditOrderModal({ isOpen, onClose, order, onSave, showToast }) {
     const [price, setPrice] = useState('');
     const [distance, setDistance] = useState('');
-    const [origin, setOrigin] = useState('');
-    const [destination, setDestination] = useState('');
     const [createdAt, setCreatedAt] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -40,8 +38,6 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
         if (!isOpen || !order) return;
         setPrice(order.price?.toString() ?? '');
         setDistance(order.distance?.toString() ?? '');
-        setOrigin(order.origin ?? '');
-        setDestination(order.destination ?? '');
         setCreatedAt(formatLocalDateTime(order.created_at));
     }, [isOpen, order]);
 
@@ -55,8 +51,6 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
                 ...order,
                 price: price ? parseFloat(price) : 0,
                 distance: distance ? parseFloat(distance) : 0,
-                origin: origin.trim(),
-                destination: destination.trim(),
                 created_at: formatUtcDateTime(createdAt)
             };
 
@@ -127,34 +121,6 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
                                     className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
                                     placeholder="0"
                                 />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Lokasi Awal</label>
-                                <div className="relative">
-                                    <MapPin size={16} className="absolute left-3 top-3 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={origin}
-                                        onChange={(event) => setOrigin(event.target.value)}
-                                        className="w-full pl-9 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
-                                        placeholder="Lokasi jemput"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tujuan</label>
-                                <div className="relative">
-                                    <Navigation2 size={16} className="absolute left-3 top-3 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={destination}
-                                        onChange={(event) => setDestination(event.target.value)}
-                                        className="w-full pl-9 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
-                                        placeholder="Lokasi antar"
-                                    />
-                                </div>
                             </div>
 
                             <div>

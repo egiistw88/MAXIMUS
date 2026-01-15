@@ -362,8 +362,6 @@ export default function Riwayat({ session }) {
                 .update({
                     price: updatedOrder.price,
                     distance: updatedOrder.distance,
-                    origin: updatedOrder.origin,
-                    destination: updatedOrder.destination,
                     created_at: updatedOrder.created_at
                 })
                 .eq('id', updatedOrder.id)
