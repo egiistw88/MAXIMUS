@@ -7,6 +7,10 @@ create table profiles (
   avatar_url text,
   vehicle_type text,
   daily_target numeric,
+  default_commission numeric,
+  fuel_efficiency numeric,
+  maintenance_fee numeric,
+  dark_mode boolean,
   
   primary key (id),
   unique(username),

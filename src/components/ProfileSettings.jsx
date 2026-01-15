@@ -42,12 +42,13 @@ export default function ProfileSettings({ session, showToast }) {
                 if (data) {
                     // Update local context with cloud data
                     updateSettings({
-                        vehicleType: data.vehicle_type || settings.vehicleType,
-                        dailyTarget: data.daily_target || settings.dailyTarget,
-                        driverName: data.full_name || settings.driverName,
-                        // Note: fuelEfficiency is derived from vehicleType usually, but we have a preset override.
-                        // We might want to save fuelEfficiency to DB too if we want it persistent custom.
-                        // For now sticking to requested fields.
+                        vehicleType: data.vehicle_type ?? settings.vehicleType,
+                        dailyTarget: data.daily_target ?? settings.dailyTarget,
+                        driverName: data.full_name ?? settings.driverName,
+                        defaultCommission: data.default_commission ?? settings.defaultCommission,
+                        fuelEfficiency: data.fuel_efficiency ?? settings.fuelEfficiency,
+                        maintenanceFee: data.maintenance_fee ?? settings.maintenanceFee,
+                        darkMode: data.dark_mode ?? settings.darkMode,
                     });
                 }
             } finally {
@@ -77,7 +78,11 @@ export default function ProfileSettings({ session, showToast }) {
                 website,
                 updated_at: new Date().toISOString(),
                 vehicle_type: newSettings.vehicleType,
-                daily_target: newSettings.dailyTarget
+                daily_target: newSettings.dailyTarget,
+                default_commission: newSettings.defaultCommission,
+                fuel_efficiency: newSettings.fuelEfficiency,
+                maintenance_fee: newSettings.maintenanceFee,
+                dark_mode: newSettings.darkMode
             };
 
             try {
@@ -246,13 +251,13 @@ export default function ProfileSettings({ session, showToast }) {
                     </div>
                     <div className="flex bg-gray-100 rounded-lg p-1">
                         <button
-                            onClick={() => updateSettings({ defaultCommission: 0.10 })}
+                            onClick={() => handleUpdate({ defaultCommission: 0.10 })}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${settings.defaultCommission === 0.10 ? 'bg-white shadow-sm text-maxim-dark' : 'text-gray-400'}`}
                         >
                             10%
                         </button>
                         <button
-                            onClick={() => updateSettings({ defaultCommission: 0.15 })}
+                            onClick={() => handleUpdate({ defaultCommission: 0.15 })}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${settings.defaultCommission === 0.15 ? 'bg-white shadow-sm text-maxim-dark' : 'text-gray-400'}`}
                         >
                             15%
@@ -266,7 +271,7 @@ export default function ProfileSettings({ session, showToast }) {
                         <div className="text-xs text-gray-400">Tampilan ramah mata malam hari</div>
                     </div>
                     <button
-                        onClick={() => updateSettings({ darkMode: !settings.darkMode })}
+                        onClick={() => handleUpdate({ darkMode: !settings.darkMode })}
                         className={`w-12 h-7 rounded-full transition-colors relative ${settings.darkMode ? 'bg-maxim-dark' : 'bg-gray-200'}`}
                     >
                         <div className={`w-5 h-5 rounded-full bg-white absolute top-1 transition-transform transform flex items-center justify-center ${settings.darkMode ? 'translate-x-6' : 'translate-x-1'}`}>

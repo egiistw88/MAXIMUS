@@ -75,11 +75,13 @@ export const SettingsProvider = ({ children }) => {
                 // Merge Supabase data into settings, using fallback for missing fields
                 setSettings(prev => ({
                     ...prev,
-                    driverName: data.full_name || prev.driverName,
-                    dailyTarget: data.daily_target || prev.dailyTarget,
-                    vehicleType: data.vehicle_type || prev.vehicleType,
-                    // These fields might need mapping if not in schema yet or stored in a JSON field
-                    // For now, mapping known fields from supabase_schema.sql
+                    driverName: data.full_name ?? prev.driverName,
+                    dailyTarget: data.daily_target ?? prev.dailyTarget,
+                    vehicleType: data.vehicle_type ?? prev.vehicleType,
+                    defaultCommission: data.default_commission ?? prev.defaultCommission,
+                    fuelEfficiency: data.fuel_efficiency ?? prev.fuelEfficiency,
+                    maintenanceFee: data.maintenance_fee ?? prev.maintenanceFee,
+                    darkMode: data.dark_mode ?? prev.darkMode
                 }));
             }
         };
