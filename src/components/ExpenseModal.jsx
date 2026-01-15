@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save } from 'lucide-react';
 
@@ -7,6 +7,18 @@ export default function ExpenseModal({ isOpen, onClose, onSave, showToast }) {
     const [category, setCategory] = useState('Bensin');
     const [note, setNote] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const resetForm = () => {
+        setAmount('');
+        setCategory('Bensin');
+        setNote('');
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            resetForm();
+        }
+    }, [isOpen]);
 
     const categories = [
         { id: 'Bensin', label: 'Bensin', color: 'bg-red-100 text-red-600' },
@@ -34,9 +46,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, showToast }) {
                 category,
                 note
             });
-            setAmount('');
-            setNote('');
-            setCategory('Bensin');
+            resetForm();
             onClose();
 
         } catch (error) {
