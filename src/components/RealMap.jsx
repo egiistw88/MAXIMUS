@@ -255,10 +255,7 @@ export default function RealMap() {
     }, [filteredSpots, userPos, currentHour]);
 
     return (
-        <div
-            className="z-0 relative w-full h-[calc(100dvh-var(--bottom-nav-height))] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]"
-            style={{ zIndex: 0 }}
-        >
+        <div className="relative z-0 w-full h-[calc(100dvh-var(--bottom-nav-height))] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]">
             <div className="absolute inset-0 z-[1000] pointer-events-none">
                 <StrategyCard recommendation={currentRecommendation} />
                 <div className="absolute left-4 right-4 top-20 space-y-2 text-xs text-slate-600">
