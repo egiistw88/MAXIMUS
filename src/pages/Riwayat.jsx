@@ -394,6 +394,11 @@ export default function Riwayat({ session }) {
             return;
         }
 
+        if (!updatedOrder.created_at) {
+            showToast('Tanggal & waktu order tidak boleh kosong.', 'error');
+            return;
+        }
+
         try {
             const { error } = await supabase
                 .from('orders')
