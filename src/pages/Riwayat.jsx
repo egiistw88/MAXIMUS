@@ -63,7 +63,14 @@ export default function Riwayat({ session }) {
     });
 
     useEffect(() => {
-        if(session) fetchData();
+        let isMounted = true;
+        const fetchDataWithMountCheck = async () => {
+            await fetchData(() => isMounted);
+        };
+        if (session) fetchDataWithMountCheck();
+        return () => {
+            isMounted = false;
+        };
     }, [session, settings.defaultCommission, settings.fuelEfficiency]);
 
     const parseDate = (value) => {
@@ -136,11 +143,11 @@ export default function Riwayat({ session }) {
         };
     };
 
-    const fetchData = async () => {
+    const fetchData = async (shouldUpdate = () => true) => {
         try {
-            setLoading(true);
+            if (shouldUpdate()) setLoading(true);
             if (!session?.user) {
-                setLoading(false);
+                if (shouldUpdate()) setLoading(false);
                 return;
             }
             const userIdColumn = 'user_id';
@@ -170,16 +177,17 @@ export default function Riwayat({ session }) {
 
             if (expensesError) throw expensesError;
 
-            processFinancials(ordersData || [], expensesData || []);
+            processFinancials(ordersData || [], expensesData || [], shouldUpdate);
 
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
-            setLoading(false);
+            if (shouldUpdate()) setLoading(false);
         }
     };
 
-    const processFinancials = (orders, expenses) => {
+    const processFinancials = (orders, expenses, shouldUpdate = () => true) => {
+        if (!shouldUpdate()) return;
         const {
             todayIncome,
             todayExpense,
@@ -192,11 +200,13 @@ export default function Riwayat({ session }) {
             monthExpenses
         } = calculateFinancials(orders, expenses);
 
-        setTodayRecap({
+        if (shouldUpdate()) {
+            setTodayRecap({
             income: todayIncome,
             expense: todayExpense,
             net: todayNet
-        });
+            });
+        }
         
         // Kalkulasi Estimasi (Bensin & Potongan)
         const totalFuelCost = monthOrders.reduce((sum, order) => {
@@ -209,7 +219,8 @@ export default function Riwayat({ session }) {
             efficiency = (monthlyNet / monthlyIncome) * 100;
         }
 
-        setMetrics({
+        if (shouldUpdate()) {
+            setMetrics({
             grossIncome: monthlyIncome,
             actualExpenses: monthlyExpense,
             netCash: monthlyNet,
@@ -218,7 +229,8 @@ export default function Riwayat({ session }) {
             fuelCostTotal: totalFuelCost,
             ordersCount: monthOrders.length,
             expensesCount: monthExpenses.length
-        });
+            });
+        }
 
         // Data Chart 7 Hari Terakhir
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -243,7 +255,7 @@ export default function Riwayat({ session }) {
             const dailyExpense = dayExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
             return { ...day, net: dailyIncome - dailyExpense };
         });
-        setChartData(chart);
+        if (shouldUpdate()) setChartData(chart);
 
         const dailyRecap = monthOrders.reduce((acc, order) => {
             const orderDate = parseDate(order.created_at);
@@ -281,7 +293,7 @@ export default function Riwayat({ session }) {
                 net: item.income - item.expense
             }));
 
-        setDailyRecapData(dailyRecapList);
+        if (shouldUpdate()) setDailyRecapData(dailyRecapList);
 
         const combined = [
             ...monthOrders.map(o => ({ ...o, type: 'income', displayAmount: o.price })),
@@ -292,8 +304,10 @@ export default function Riwayat({ session }) {
             return (dateB?.getTime() || 0) - (dateA?.getTime() || 0);
         });
 
-        setTransactions(combined);
-        setVisibleCount(pageSize);
+        if (shouldUpdate()) {
+            setTransactions(combined);
+            setVisibleCount(pageSize);
+        }
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('id-ID').format(val);
