@@ -24,7 +24,6 @@ export default function ExpenseModal({ isOpen, onClose, onSave }) {
             await onSave({
                 amount,
                 category,
-                description: note,
                 note
             });
             setAmount('');

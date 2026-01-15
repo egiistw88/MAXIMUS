@@ -382,7 +382,7 @@ export default function Riwayat({ session }) {
                     user_id: user.id,
                     amount: parseFloat(expenseData.amount || expenseData.price || 0),
                     category: expenseData.category || 'Lainnya',
-                    description: expenseData.description || expenseData.note || '',
+                    note: expenseData.note || '',
                     created_at: new Date().toISOString()
                 }]);
 
@@ -673,7 +673,7 @@ export default function Riwayat({ session }) {
                                                 {t.type === 'income' ? 'Order Masuk' : (t.category || 'Pengeluaran')}
                                             </p>
                                             <p className="text-xs text-gray-400">
-                                                {formatTime(t.created_at)} • {t.type === 'income' ? `${t.distance || 0} km` : t.description || '-'}
+                                                {formatTime(t.created_at)} • {t.type === 'income' ? `${t.distance || 0} km` : t.note || t.description || '-'}
                                             </p>
                                         </div>
                                     </div>
