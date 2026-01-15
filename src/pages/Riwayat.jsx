@@ -144,6 +144,28 @@ export default function Riwayat({ session }) {
         return gross * rate;
     };
 
+    const getUpdatedFinancials = (order) => {
+        const grossFromOrder = parseFloat(order.gross_price);
+        const fallbackGross = parseFloat(order.price);
+        const grossPrice = Number.isFinite(grossFromOrder)
+            ? grossFromOrder
+            : Number.isFinite(fallbackGross)
+                ? fallbackGross
+                : 0;
+        const commissionRate = Number.isFinite(parseFloat(order.commission_rate))
+            ? parseFloat(order.commission_rate)
+            : parseFloat(settings.defaultCommission) || 0;
+        const appFee = grossPrice * commissionRate;
+        const netProfit = grossPrice - appFee;
+
+        return {
+            grossPrice,
+            commissionRate,
+            appFee,
+            netProfit
+        };
+    };
+
     const calculateFinancials = (orders, expenses) => {
         const { startToday, endToday } = getLocalDateRanges();
         const todayOrders = orders.filter((order) =>
@@ -399,12 +421,17 @@ export default function Riwayat({ session }) {
             return;
         }
 
+        const { grossPrice, commissionRate, appFee, netProfit } = getUpdatedFinancials(updatedOrder);
+
         try {
             const { error } = await supabase
                 .from('orders')
                 .update({
-                    price: updatedOrder.price,
-                    net_profit: updatedOrder.net_profit ?? updatedOrder.price,
+                    price: netProfit,
+                    gross_price: grossPrice,
+                    commission_rate: commissionRate,
+                    app_fee: appFee,
+                    net_profit: netProfit,
                     distance: updatedOrder.distance,
                     created_at: updatedOrder.created_at
                 })

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { useSettings } from '../context/SettingsContext';
 
 const parseLocalDateTime = (value) => {
     if (!value) return null;
@@ -27,21 +28,43 @@ const formatUtcDateTime = (value) => {
 };
 
 export default function EditOrderModal({ isOpen, onClose, order, onSave, showToast }) {
+    const { settings } = useSettings();
     const [price, setPrice] = useState('');
     const [distance, setDistance] = useState('');
     const [createdAt, setCreatedAt] = useState('');
+    const [commissionRate, setCommissionRate] = useState('');
     const [createdAtError, setCreatedAtError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const title = useMemo(() => (order ? `Edit Order #${order.id}` : 'Edit Order'), [order]);
 
+    const getInitialGrossPrice = () => {
+        if (!order) return '';
+        const grossValue = parseFloat(order.gross_price);
+        if (Number.isFinite(grossValue)) return grossValue.toString();
+        const rateValue = parseFloat(order.commission_rate);
+        const fallbackRate = Number.isFinite(rateValue)
+            ? rateValue
+            : parseFloat(settings.defaultCommission) || 0;
+        const netValue = parseFloat(order.net_profit ?? order.price);
+        if (!Number.isFinite(netValue)) return '';
+        if (fallbackRate >= 0 && fallbackRate < 1) {
+            return (netValue / (1 - fallbackRate)).toString();
+        }
+        return netValue.toString();
+    };
+
     useEffect(() => {
         if (!isOpen || !order) return;
-        setPrice(order.net_profit?.toString() ?? order.price?.toString() ?? '');
+        setPrice(getInitialGrossPrice());
         setDistance(order.distance?.toString() ?? '');
         setCreatedAt(formatLocalDateTime(order.created_at));
+        const initialCommission = Number.isFinite(parseFloat(order.commission_rate))
+            ? parseFloat(order.commission_rate)
+            : parseFloat(settings.defaultCommission) || 0;
+        setCommissionRate(initialCommission.toString());
         setCreatedAtError(false);
-    }, [isOpen, order]);
+    }, [isOpen, order, settings.defaultCommission]);
 
     const handleCreatedAtChange = (event) => {
         const { value } = event.target;
@@ -66,10 +89,17 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
 
         setIsSubmitting(true);
         try {
+            const grossPrice = price ? parseFloat(price) : 0;
+            const commissionValue = commissionRate ? parseFloat(commissionRate) : 0;
+            const appFee = grossPrice * commissionValue;
+            const netProfit = grossPrice - appFee;
             const updatedOrder = {
                 ...order,
-                price: price ? parseFloat(price) : 0,
-                net_profit: price ? parseFloat(price) : 0,
+                price: grossPrice,
+                gross_price: grossPrice,
+                commission_rate: commissionValue,
+                app_fee: appFee,
+                net_profit: netProfit,
                 distance: distance ? parseFloat(distance) : 0,
                 created_at: formattedCreatedAt
             };
@@ -120,7 +150,7 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga (Rp)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Omzet (Rp)</label>
                                 <input
                                     type="number"
                                     value={price}
@@ -129,6 +159,23 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave, showToa
                                     placeholder="Masukkan nominal"
                                     required
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Komisi</label>
+                                <select
+                                    value={commissionRate}
+                                    onChange={(event) => setCommissionRate(event.target.value)}
+                                    className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
+                                >
+                                    <option value="0.1">Prioritas (10%)</option>
+                                    <option value="0.15">Reguler (15%)</option>
+                                    {![0.1, 0.15].includes(parseFloat(settings.defaultCommission)) && (
+                                        <option value={settings.defaultCommission}>
+                                            Default Profil ({Math.round(settings.defaultCommission * 100)}%)
+                                        </option>
+                                    )}
+                                </select>
                             </div>
 
                             <div>
