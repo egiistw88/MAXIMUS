@@ -38,6 +38,23 @@ export default function ProfitEngine({ showToast, session }) {
     const handleAccept = async () => {
         if (!orderPrice || !distance || isSubmitting) return;
 
+        const priceValue = parseFloat(orderPrice);
+        const distanceValue = parseFloat(distance);
+
+        if (Number.isNaN(priceValue) || priceValue < 0) {
+            if (showToast) {
+                showToast('Harga order tidak valid.', 'error');
+            }
+            return;
+        }
+
+        if (Number.isNaN(distanceValue) || distanceValue < 0) {
+            if (showToast) {
+                showToast('Jarak tidak valid.', 'error');
+            }
+            return;
+        }
+
         setIsSubmitting(true);
 
         // Haptic Feedback
@@ -77,7 +94,9 @@ export default function ProfitEngine({ showToast, session }) {
 
         } catch (error) {
             console.error('Error saving order:', error);
-            alert('Gagal menyimpan order: ' + error.message);
+            if (showToast) {
+                showToast(`Gagal menyimpan order: ${error.message}`, 'error');
+            }
             setIsSubmitting(false);
         }
     };
@@ -140,6 +159,8 @@ export default function ProfitEngine({ showToast, session }) {
                             value={orderPrice}
                             onChange={(e) => setOrderPrice(e.target.value)}
                             placeholder="0"
+                            min="0"
+                            step="1000"
                             className="w-full text-lg p-3 rounded-xl border border-gray-200 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none transition-all"
                             inputMode="numeric"
                         />
@@ -165,6 +186,8 @@ export default function ProfitEngine({ showToast, session }) {
                             value={distance}
                             onChange={(e) => setDistance(e.target.value)}
                             placeholder="0"
+                            min="0"
+                            step="0.1"
                             className="w-full text-lg p-3 rounded-xl border border-gray-200 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none transition-all"
                             inputMode="decimal"
                         />

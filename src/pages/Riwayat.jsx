@@ -732,6 +732,7 @@ export default function Riwayat({ session }) {
                 isOpen={showExpenseModal}
                 onClose={() => setShowExpenseModal(false)}
                 onSave={handleSaveExpense}
+                showToast={showToast}
             />
 
             <EditOrderModal

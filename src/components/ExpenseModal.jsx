@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, DollarSign } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 
-export default function ExpenseModal({ isOpen, onClose, onSave }) {
+export default function ExpenseModal({ isOpen, onClose, onSave, showToast }) {
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('Bensin');
     const [note, setNote] = useState('');
@@ -19,6 +19,14 @@ export default function ExpenseModal({ isOpen, onClose, onSave }) {
         e.preventDefault();
         if (!amount || isSubmitting) return;
 
+        const amountValue = parseFloat(amount);
+        if (Number.isNaN(amountValue) || amountValue < 0) {
+            if (showToast) {
+                showToast('Jumlah pengeluaran tidak valid.', 'error');
+            }
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await onSave({
@@ -34,7 +42,9 @@ export default function ExpenseModal({ isOpen, onClose, onSave }) {
 
         } catch (error) {
             console.error('Error saving expense:', error);
-            alert('Gagal menyimpan pengeluaran.');
+            if (showToast) {
+                showToast('Gagal menyimpan pengeluaran.', 'error');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -82,6 +92,8 @@ export default function ExpenseModal({ isOpen, onClose, onSave }) {
                                         onChange={(e) => setAmount(e.target.value)}
                                         className="pl-10 w-full p-4 text-2xl font-bold bg-gray-50 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all placeholder-gray-300"
                                         placeholder="0"
+                                        min="0"
+                                        step="1000"
                                         autoFocus
                                         required
                                     />
