@@ -277,62 +277,68 @@ export default function RealMap() {
                 </div>
             </div>
 
-            <MapContainer
-                center={BANDUNG_CENTER}
-                zoom={13}
-                zoomControl={false}
-                scrollWheelZoom={true}
-                className="z-[1]"
-                style={{ height: '100%', width: '100%' }}
-            >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url={settings?.darkMode
-                        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                    }
+            <div className="relative h-full w-full">
+                <div
+                    aria-hidden="true"
+                    className="absolute bottom-0 left-0 right-0 z-10 h-[var(--bottom-nav-height)] pointer-events-auto"
                 />
+                <MapContainer
+                    center={BANDUNG_CENTER}
+                    zoom={13}
+                    zoomControl={false}
+                    scrollWheelZoom={true}
+                    className="z-[1]"
+                    style={{ height: '100%', width: '100%' }}
+                >
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url={settings?.darkMode
+                            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                            : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+                        }
+                    />
 
-                <RecenterFab userPos={userPos} />
+                    <RecenterFab userPos={userPos} />
 
-                {userPos && (
-                    <Marker position={userPos} icon={userIcon}>
-                        <Popup>
-                            <span className="font-bold text-blue-600">Posisi Anda</span>
-                        </Popup>
-                    </Marker>
-                )}
-
-                {filteredSpots.map((spot) => {
-                    const lat = spot.latitude ?? spot.lat;
-                    const lng = spot.longitude ?? spot.lng;
-
-                    if (lat == null || lng == null) return null;
-
-                    const categoryIcon = categoryIcons[spot.category] || activeStrategyIcon;
-
-                    return (
-                        <Marker
-                            key={spot.id}
-                            position={[lat, lng]}
-                            icon={categoryIcon}
-                            zIndexOffset={1000}
-                        >
-                            <Popup className="custom-popup" closeButton={false}>
-                                <div className="p-1 min-w-[200px]">
-                                    <div className="text-xs font-bold uppercase tracking-wider mb-1 text-emerald-600">
-                                        REKOMENDASI JAM INI
-                                    </div>
-                                    <h3 className="font-bold text-lg text-slate-900 mb-1">{spot.name}</h3>
-                                    <p className="text-sm text-slate-600 leading-snug bg-slate-50 p-2 rounded border border-slate-100 italic">
-                                        "{spot.notes ?? 'Tidak ada catatan.'}"
-                                    </p>
-                                </div>
+                    {userPos && (
+                        <Marker position={userPos} icon={userIcon}>
+                            <Popup>
+                                <span className="font-bold text-blue-600">Posisi Anda</span>
                             </Popup>
                         </Marker>
-                    );
-                })}
-            </MapContainer>
+                    )}
+
+                    {filteredSpots.map((spot) => {
+                        const lat = spot.latitude ?? spot.lat;
+                        const lng = spot.longitude ?? spot.lng;
+
+                        if (lat == null || lng == null) return null;
+
+                        const categoryIcon = categoryIcons[spot.category] || activeStrategyIcon;
+
+                        return (
+                            <Marker
+                                key={spot.id}
+                                position={[lat, lng]}
+                                icon={categoryIcon}
+                                zIndexOffset={1000}
+                            >
+                                <Popup className="custom-popup" closeButton={false}>
+                                    <div className="p-1 min-w-[200px]">
+                                        <div className="text-xs font-bold uppercase tracking-wider mb-1 text-emerald-600">
+                                            REKOMENDASI JAM INI
+                                        </div>
+                                        <h3 className="font-bold text-lg text-slate-900 mb-1">{spot.name}</h3>
+                                        <p className="text-sm text-slate-600 leading-snug bg-slate-50 p-2 rounded border border-slate-100 italic">
+                                            "{spot.notes ?? 'Tidak ada catatan.'}"
+                                        </p>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
+                </MapContainer>
+            </div>
         </div>
     );
 }
