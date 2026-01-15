@@ -93,7 +93,9 @@ function AppContent({ session, loading }) {
                     paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))'
                 }}
             >
-                <AnimatedRoutes showToast={showToast} session={session} />
+                <main className="relative z-0">
+                    <AnimatedRoutes showToast={showToast} session={session} />
+                </main>
 
                 <BottomNavigation />
             </div>
