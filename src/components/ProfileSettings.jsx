@@ -36,7 +36,9 @@ export default function ProfileSettings({ session, showToast }) {
                     .maybeSingle();
 
                 if (error && error.code !== 'PGRST116') { // PGRST116: JSON object requested, multiple (or no) rows returned
-                    window.alert(`ERROR: ${error.message}\nCODE: ${error.code}\nDETAILS: ${error.details}`);
+                    if (showToast) {
+                        showToast(`Gagal memuat profil: ${error.message}`, 'error');
+                    }
                 }
 
                 if (data) {
@@ -63,7 +65,10 @@ export default function ProfileSettings({ session, showToast }) {
     const saveToCloud = useCallback(
         debounce(async (newSettings) => {
             if (!session || !session.user) {
-                return window.alert('No active session found!');
+                if (showToast) {
+                    showToast('Sesi tidak ditemukan. Silakan login ulang.', 'error');
+                }
+                return;
             }
             if (saving) return;
             setSaving(true);
@@ -84,14 +89,16 @@ export default function ProfileSettings({ session, showToast }) {
                 const { error } = await supabase.from('profiles').upsert(updates);
 
                 if (error) {
-                    window.alert(`ERROR: ${error.message}\nCODE: ${error.code}\nDETAILS: ${error.details}`);
+                    if (showToast) {
+                        showToast(`Gagal menyimpan profil: ${error.message}`, 'error');
+                    }
                     return;
                 }
                 if (showToast) showToast('Profil tersimpan di Cloud', 'success');
             } catch (error) {
-                const alertError = error ?? {};
-                window.alert(`ERROR: ${alertError.message}\nCODE: ${alertError.code}\nDETAILS: ${alertError.details}`);
-                if (showToast) showToast('Gagal menyimpan profil', 'error');
+                if (showToast) {
+                    showToast('Gagal menyimpan profil', 'error');
+                }
             } finally {
                 setSaving(false);
             }

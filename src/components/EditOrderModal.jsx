@@ -26,7 +26,7 @@ const formatUtcDateTime = (value) => {
     return date.toISOString();
 };
 
-export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
+export default function EditOrderModal({ isOpen, onClose, order, onSave, showToast }) {
     const [price, setPrice] = useState('');
     const [distance, setDistance] = useState('');
     const [origin, setOrigin] = useState('');
@@ -63,7 +63,9 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
             await onSave(updatedOrder);
         } catch (error) {
             console.error('Error updating order:', error);
-            alert('Gagal menyimpan perubahan order.');
+            if (showToast) {
+                showToast('Gagal menyimpan perubahan order.', 'error');
+            }
         } finally {
             setIsSubmitting(false);
         }

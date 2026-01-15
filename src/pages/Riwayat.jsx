@@ -740,6 +740,7 @@ export default function Riwayat({ session }) {
                 onClose={() => setEditingOrder(null)}
                 order={editingOrder}
                 onSave={handleUpdateOrder}
+                showToast={showToast}
             />
 
             <ConfirmationModal

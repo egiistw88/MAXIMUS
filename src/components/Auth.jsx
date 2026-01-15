@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase, isSupabaseConfigured, supabaseConfigError } from '../lib/supabaseClient'
+import { useToast } from '../context/ToastContext'
 
 export default function Auth() {
     const [loading, setLoading] = useState(false)

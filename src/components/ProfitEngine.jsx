@@ -147,7 +147,7 @@ export default function ProfitEngine({ showToast, session }) {
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
                     <div>
                         <div className="flex justify-between items-end mb-1">
-                            <label className="block text-xs font-medium text-gray-500 uppercase">Harga Order (Rp)</label>
+                            <label className="block text-xs font-medium text-gray-500 uppercase">Omzet Order (Rp)</label>
                             {orderPrice && (
                                 <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">
                                     Bersih: Rp {formatCurrency(realNet)}
@@ -220,7 +220,7 @@ export default function ProfitEngine({ showToast, session }) {
                     </div>
                     <div className="bg-white p-3 rounded-xl border border-gray-100 text-center">
                         <div className="text-[10px] text-gray-400 uppercase">Servis</div>
-                        <div className="text-sm font-semibold text-red-500">-{maintenance}</div>
+                        <div className="text-sm font-semibold text-red-500">-{formatCurrency(maintenance)}</div>
                     </div>
                 </div>
 
