@@ -7,8 +7,12 @@ export default function ProfileSettings({ session, showToast }) {
     const { settings, updateSettings } = useSettings();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [syncPending, setSyncPending] = useState(false);
     const settingsRef = useRef(settings);
     const saveTimeoutRef = useRef(null);
+    const pendingSettingsRef = useRef(null);
+    const inFlightRef = useRef(false);
+    const syncToastShownRef = useRef(false);
 
     useEffect(() => {
         settingsRef.current = settings;
@@ -61,57 +65,87 @@ export default function ProfileSettings({ session, showToast }) {
         fetchProfile();
     }, [session, updateSettings]); // Careful: updateSettings should be stable
 
-    // Debounced save to Supabase
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const saveToCloud = useCallback((newSettings) => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
+    const flushSave = useCallback(async () => {
+        if (!session || !session.user) {
+            if (showToast) {
+                showToast('Sesi tidak ditemukan. Silakan login ulang.', 'error');
+            }
+            pendingSettingsRef.current = null;
+            setSyncPending(false);
+            syncToastShownRef.current = false;
+            return;
         }
-        saveTimeoutRef.current = setTimeout(async () => {
-            if (!session || !session.user) {
+        if (inFlightRef.current) return;
+        const nextSettings = pendingSettingsRef.current;
+        if (!nextSettings) {
+            setSyncPending(false);
+            syncToastShownRef.current = false;
+            return;
+        }
+        inFlightRef.current = true;
+        pendingSettingsRef.current = null;
+        setSaving(true);
+        const username = nextSettings.username ?? '';
+        const full_name = nextSettings.driverName ?? '';
+        const website = nextSettings.website ?? '';
+        const updates = {
+            id: session.user.id,
+            username,
+            full_name,
+            website,
+            updated_at: new Date().toISOString(),
+            vehicle_type: nextSettings.vehicleType,
+            daily_target: nextSettings.dailyTarget,
+            default_commission: nextSettings.defaultCommission,
+            fuel_efficiency: nextSettings.fuelEfficiency,
+            maintenance_fee: nextSettings.maintenanceFee,
+            dark_mode: nextSettings.darkMode
+        };
+
+        try {
+            const { error } = await supabase.from('profiles').upsert(updates);
+
+            if (error) {
                 if (showToast) {
-                    showToast('Sesi tidak ditemukan. Silakan login ulang.', 'error');
+                    showToast(`Gagal menyimpan profil: ${error.message}`, 'error');
                 }
                 return;
             }
-            if (saving) return;
-            setSaving(true);
-            const username = newSettings.username ?? '';
-            const full_name = newSettings.driverName ?? '';
-            const website = newSettings.website ?? '';
-            const updates = {
-                id: session.user.id,
-                username,
-                full_name,
-                website,
-                updated_at: new Date().toISOString(),
-                vehicle_type: newSettings.vehicleType,
-                daily_target: newSettings.dailyTarget,
-                default_commission: newSettings.defaultCommission,
-                fuel_efficiency: newSettings.fuelEfficiency,
-                maintenance_fee: newSettings.maintenanceFee,
-                dark_mode: newSettings.darkMode
-            };
-
-            try {
-                const { error } = await supabase.from('profiles').upsert(updates);
-
-                if (error) {
-                    if (showToast) {
-                        showToast(`Gagal menyimpan profil: ${error.message}`, 'error');
-                    }
-                    return;
-                }
-                if (showToast) showToast('Profil tersimpan di Cloud', 'success');
-            } catch (error) {
-                if (showToast) {
-                    showToast('Gagal menyimpan profil', 'error');
-                }
-            } finally {
-                setSaving(false);
+            if (showToast) showToast('Profil tersimpan di Cloud', 'success');
+        } catch (error) {
+            if (showToast) {
+                showToast('Gagal menyimpan profil', 'error');
             }
+        } finally {
+            inFlightRef.current = false;
+            setSaving(false);
+            if (pendingSettingsRef.current) {
+                setSyncPending(true);
+                saveTimeoutRef.current = setTimeout(() => {
+                    flushSave();
+                }, 0);
+            } else {
+                setSyncPending(false);
+                syncToastShownRef.current = false;
+            }
+        }
+    }, [session, showToast]);
+
+    // Debounced save to Supabase
+    const saveToCloud = useCallback((newSettings) => {
+        pendingSettingsRef.current = newSettings;
+        setSyncPending(true);
+        if (inFlightRef.current && showToast && !syncToastShownRef.current) {
+            showToast('Perubahan terakhir sedang disinkronkan', 'info');
+            syncToastShownRef.current = true;
+        }
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+            flushSave();
         }, 1000);
-    }, [saving, session, showToast]);
+    }, [flushSave, showToast]);
 
     // Wrapper to update both Local Context and Cloud
     const handleUpdate = (updates) => {
@@ -152,9 +186,10 @@ export default function ProfileSettings({ session, showToast }) {
                     </div>
                     <h1 className="text-2xl font-bold text-maxim-dark">Profil Saya</h1>
                 </div>
-                {saving && (
+                {(saving || syncPending) && (
                     <span className="text-xs text-gray-400 flex items-center animate-pulse">
-                        <Cloud className="w-3 h-3 mr-1" /> Menyimpan...
+                        <Cloud className="w-3 h-3 mr-1" />
+                        {saving && !syncPending ? 'Menyimpan...' : 'Perubahan terakhir sedang disinkronkan'}
                     </span>
                 )}
             </div>
