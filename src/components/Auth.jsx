@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { useToast } from '../context/ToastContext'
-import { supabase } from '../lib/supabaseClient'
+import { supabase, isSupabaseConfigured, supabaseConfigError } from '../lib/supabaseClient'
 
 export default function Auth() {
     const [loading, setLoading] = useState(false)
@@ -49,6 +48,16 @@ export default function Auth() {
                     <p className="text-gray-500 text-sm">Masuk untuk menyimpan riwayat order</p>
                 </div>
 
+                {!isSupabaseConfigured && (
+                    <div className="bg-yellow-100 border border-yellow-200 text-yellow-800 px-4 py-3 rounded relative mb-4" role="alert">
+                        <p className="text-sm font-semibold">Konfigurasi Supabase belum lengkap.</p>
+                        <p className="text-sm">
+                            {supabaseConfigError ||
+                                'Lengkapi VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di file .env untuk melanjutkan.'}
+                        </p>
+                    </div>
+                )}
+
                 {message ? (
                     <div className="bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
                         <span className="block sm:inline">{message}</span>
@@ -75,7 +84,7 @@ export default function Auth() {
 
                         <button
                             className="w-full bg-maxim-primary hover:bg-yellow-400 text-maxim-dark font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                            disabled={loading}
+                            disabled={loading || !isSupabaseConfigured}
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center">

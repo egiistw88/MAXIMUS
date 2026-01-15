@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { supabase } from './lib/supabaseClient';
+import { supabase, isSupabaseConfigured, supabaseConfigError } from './lib/supabaseClient';
 import Auth from './components/Auth';
 import ProfitEngine from './components/ProfitEngine';
 import RealMap from './components/RealMap';
@@ -62,6 +62,20 @@ function AppContent({ session, loading }) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-maxim-bg">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-maxim-dark"></div>
+            </div>
+        );
+    }
+
+    if (!isSupabaseConfigured) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-maxim-bg p-6">
+                <div className="w-full max-w-lg rounded-2xl border border-yellow-200 bg-yellow-50 p-6 text-center text-yellow-900 shadow-sm">
+                    <h1 className="text-xl font-semibold mb-2">Konfigurasi Supabase belum lengkap</h1>
+                    <p className="text-sm text-yellow-800">
+                        {supabaseConfigError ||
+                            'Tambahkan VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di file .env agar autentikasi aktif.'}
+                    </p>
+                </div>
             </div>
         );
     }
