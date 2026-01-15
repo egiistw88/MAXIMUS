@@ -21,11 +21,11 @@ import {
     endOfDay
 } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Plus, Minus, TrendingUp, TrendingDown, Wallet, AlertCircle, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Minus, TrendingUp, TrendingDown, Wallet, AlertCircle, Trash2, Edit2, RotateCcw } from 'lucide-react';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import EditOrderModal from '../components/EditOrderModal';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../context/ToastContext';
 
 export default function Riwayat({ session }) {
@@ -42,13 +42,17 @@ export default function Riwayat({ session }) {
     const [editingOrder, setEditingOrder] = useState(null);
     const [deleteTargetId, setDeleteTargetId] = useState(null);
     const [deleteTargetType, setDeleteTargetType] = useState(null);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [dailyResetDate, setDailyResetDate] = useState(null);
     const pageSize = 20;
     
     // State untuk Rekap Harian (Setoran)
     const [todayRecap, setTodayRecap] = useState({
         income: 0,
         expense: 0,
-        net: 0
+        net: 0,
+        appFee: 0,
+        expenseRaw: 0
     });
 
     const [metrics, setMetrics] = useState({
@@ -63,8 +67,15 @@ export default function Riwayat({ session }) {
     });
 
     useEffect(() => {
-        if(session) fetchData();
-    }, [session, settings.defaultCommission, settings.fuelEfficiency]);
+        if (session) fetchData();
+    }, [session, settings.defaultCommission, settings.fuelEfficiency, dailyResetDate]);
+
+    useEffect(() => {
+        if (!user?.id || typeof window === 'undefined') return;
+        const storageKey = `dailyRecapReset:${user.id}`;
+        const stored = window.localStorage.getItem(storageKey);
+        setDailyResetDate(stored);
+    }, [user?.id]);
 
     const parseDate = (value) => {
         if (!value) return null;
@@ -96,8 +107,20 @@ export default function Riwayat({ session }) {
         return parsed ? parsed >= start && parsed <= end : false;
     };
 
+    const getGrossPrice = (order) =>
+        parseFloat(order.gross_price ?? order.price ?? 0) || 0;
+
+    const getAppFee = (order, commissionRate) => {
+        if (order.app_fee !== null && order.app_fee !== undefined) {
+            return parseFloat(order.app_fee) || 0;
+        }
+        return getGrossPrice(order) * commissionRate;
+    };
+
     const calculateFinancials = (orders, expenses) => {
         const { startToday, endToday } = getLocalDateRanges();
+        const todayKey = format(new Date(), 'yyyy-MM-dd');
+        const isResetToday = dailyResetDate === todayKey;
         const todayOrders = orders.filter((order) =>
             isWithinLocalRange(order.created_at, startToday, endToday)
         );
@@ -111,17 +134,25 @@ export default function Riwayat({ session }) {
         const sumValues = (items, key) =>
             items.reduce((sum, item) => sum + (parseFloat(item[key]) || 0), 0);
 
-        const todayIncome = sumValues(todayOrders, 'price');
-        const todayExpense = sumValues(todayExpenses, 'amount');
-        const monthlyIncome = sumValues(monthOrders, 'price');
+        let todayIncome = todayOrders.reduce((sum, order) => sum + getGrossPrice(order), 0);
+        const todayExpenseRaw = sumValues(todayExpenses, 'amount');
+        const monthlyIncome = monthOrders.reduce((sum, order) => sum + getGrossPrice(order), 0);
         const monthlyExpense = sumValues(monthExpenses, 'amount');
-        const monthlyPotongan = monthOrders.reduce((sum, order) => {
-            const hasFee = Object.prototype.hasOwnProperty.call(order, 'fee');
-            const feeValue = hasFee && order.fee !== null
-                ? (parseFloat(order.fee) || 0)
-                : (parseFloat(order.price) || 0) * commissionRate;
-            return sum + feeValue;
-        }, 0);
+        let todayPotongan = todayOrders.reduce(
+            (sum, order) => sum + getAppFee(order, commissionRate),
+            0
+        );
+        const monthlyPotongan = monthOrders.reduce(
+            (sum, order) => sum + getAppFee(order, commissionRate),
+            0
+        );
+
+        let todayExpense = todayExpenseRaw + todayPotongan;
+        if (isResetToday) {
+            todayIncome = 0;
+            todayPotongan = 0;
+            todayExpense = 0;
+        }
 
         return {
             todayIncome,
@@ -129,8 +160,10 @@ export default function Riwayat({ session }) {
             todayNet: todayIncome - todayExpense,
             monthlyIncome,
             monthlyExpense,
-            monthlyNet: monthlyIncome - monthlyExpense,
+            monthlyNet: monthlyIncome - monthlyExpense - monthlyPotongan,
             monthlyPotongan,
+            todayPotongan,
+            todayExpenseRaw,
             monthOrders,
             monthExpenses
         };
@@ -180,6 +213,9 @@ export default function Riwayat({ session }) {
     };
 
     const processFinancials = (orders, expenses) => {
+        const commissionRate = parseFloat(settings.defaultCommission) || 0;
+        const todayKey = format(new Date(), 'yyyy-MM-dd');
+        const isResetToday = dailyResetDate === todayKey;
         const {
             todayIncome,
             todayExpense,
@@ -188,6 +224,8 @@ export default function Riwayat({ session }) {
             monthlyExpense,
             monthlyNet,
             monthlyPotongan,
+            todayPotongan,
+            todayExpenseRaw,
             monthOrders,
             monthExpenses
         } = calculateFinancials(orders, expenses);
@@ -195,7 +233,9 @@ export default function Riwayat({ session }) {
         setTodayRecap({
             income: todayIncome,
             expense: todayExpense,
-            net: todayNet
+            net: todayNet,
+            appFee: todayPotongan,
+            expenseRaw: todayExpenseRaw
         });
         
         // Kalkulasi Estimasi (Bensin & Potongan)
@@ -239,11 +279,18 @@ export default function Riwayat({ session }) {
                 const expenseDate = parseDate(e.created_at);
                 return expenseDate ? isSameDay(expenseDate, day.date) : false;
             });
-            const dailyIncome = dayOrders.reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
+            const dailyIncome = dayOrders.reduce((s, o) => s + getGrossPrice(o), 0);
+            const dailyAppFee = dayOrders.reduce(
+                (s, o) => s + getAppFee(o, commissionRate),
+                0
+            );
             const dailyExpense = dayExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-            return { ...day, net: dailyIncome - dailyExpense };
+            return { ...day, net: dailyIncome - dailyExpense - dailyAppFee };
         });
-        setChartData(chart);
+        const normalizedChart = chart.map((entry) =>
+            isResetToday && isSameDay(entry.date, new Date()) ? { ...entry, net: 0 } : entry
+        );
+        setChartData(normalizedChart);
 
         const dailyRecap = monthOrders.reduce((acc, order) => {
             const orderDate = parseDate(order.created_at);
@@ -256,7 +303,8 @@ export default function Riwayat({ session }) {
                     expense: 0
                 };
             }
-            acc[key].income += parseFloat(order.price) || 0;
+            acc[key].income += getGrossPrice(order);
+            acc[key].expense += getAppFee(order, commissionRate);
             return acc;
         }, {});
 
@@ -273,6 +321,18 @@ export default function Riwayat({ session }) {
             }
             dailyRecap[key].expense += parseFloat(expense.amount) || 0;
         });
+        if (isResetToday) {
+            if (!dailyRecap[todayKey]) {
+                dailyRecap[todayKey] = {
+                    date: startOfDay(new Date()),
+                    income: 0,
+                    expense: 0
+                };
+            } else {
+                dailyRecap[todayKey].income = 0;
+                dailyRecap[todayKey].expense = 0;
+            }
+        }
 
         const dailyRecapList = Object.values(dailyRecap)
             .sort((a, b) => b.date - a.date)
@@ -284,7 +344,7 @@ export default function Riwayat({ session }) {
         setDailyRecapData(dailyRecapList);
 
         const combined = [
-            ...monthOrders.map(o => ({ ...o, type: 'income', displayAmount: o.price })),
+            ...monthOrders.map(o => ({ ...o, type: 'income', displayAmount: getGrossPrice(o) })),
             ...monthExpenses.map(e => ({ ...e, type: 'expense', displayAmount: e.amount }))
         ].sort((a, b) => {
             const dateA = parseDate(a.created_at);
@@ -347,7 +407,10 @@ export default function Riwayat({ session }) {
                 .from('orders')
                 .update({
                     price: updatedOrder.price,
+                    gross_price: updatedOrder.gross_price,
+                    app_fee: updatedOrder.app_fee,
                     distance: updatedOrder.distance,
+                    net_profit: updatedOrder.net_profit,
                     origin: updatedOrder.origin,
                     destination: updatedOrder.destination,
                     created_at: updatedOrder.created_at
@@ -365,6 +428,25 @@ export default function Riwayat({ session }) {
             console.error('Gagal update:', error);
             showToast('Terjadi kesalahan: ' + (error.message || 'Terjadi kesalahan sistem'), 'error');
         }
+    };
+
+    const openResetModal = () => {
+        setShowResetModal(true);
+    };
+
+    const closeResetModal = () => {
+        setShowResetModal(false);
+    };
+
+    const confirmResetToday = async () => {
+        if (!user?.id || typeof window === 'undefined') return;
+        const todayKey = format(new Date(), 'yyyy-MM-dd');
+        const storageKey = `dailyRecapReset:${user.id}`;
+        window.localStorage.setItem(storageKey, todayKey);
+        setDailyResetDate(todayKey);
+        await fetchData();
+        closeResetModal();
+        showToast('Rekap harian hari ini sudah direset.', 'success');
     };
 
     const handleSaveExpense = async (expenseData) => {
@@ -401,6 +483,11 @@ export default function Riwayat({ session }) {
     const insight = getInsight();
     const visibleTransactions = transactions.slice(0, visibleCount);
     const canLoadMore = visibleCount < transactions.length;
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const isResetToday = dailyResetDate === todayKey;
+    const resetInsight = todayRecap.net >= 0
+        ? 'Hari ini kamu masih positif. Pertahankan konsistensi!'
+        : 'Hari ini masih minus. Evaluasi biaya dan target besok.';
 
     const handleLoadMore = () => {
         setVisibleCount((prev) => Math.min(prev + pageSize, transactions.length));
@@ -435,6 +522,22 @@ export default function Riwayat({ session }) {
                 
                 {/* --- KARTU REKAP HARIAN (SETORAN) --- */}
                 <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 p-5 rounded-2xl shadow-lg border border-emerald-400/40 text-white">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs uppercase tracking-widest text-emerald-100 font-semibold">Rekap Hari Ini</span>
+                        <button
+                            type="button"
+                            onClick={openResetModal}
+                            disabled={isResetToday}
+                            className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                                isResetToday
+                                    ? 'bg-white/20 text-white/60 cursor-not-allowed'
+                                    : 'bg-white/20 text-white hover:bg-white/30'
+                            }`}
+                        >
+                            <RotateCcw size={12} />
+                            {isResetToday ? 'Sudah direset' : 'Reset harian'}
+                        </button>
+                    </div>
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-wrap justify-between gap-4 text-sm font-semibold">
                             <span className="text-green-100">
@@ -740,6 +843,77 @@ export default function Riwayat({ session }) {
                 order={editingOrder}
                 onSave={handleUpdateOrder}
             />
+
+            <AnimatePresence>
+                {showResetModal && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={closeResetModal}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.96 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            onClick={(event) => event.stopPropagation()}
+                            className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100 dark:border-slate-700 dark:bg-slate-800"
+                        >
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reset Rekap Hari Ini?</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                    {resetInsight}
+                                </p>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                <div className="rounded-xl border border-gray-100 dark:border-slate-700 p-3">
+                                    <p className="text-xs text-gray-400">Pemasukan</p>
+                                    <p className="font-semibold text-green-600">Rp {formatCurrency(todayRecap.income)}</p>
+                                </div>
+                                <div className="rounded-xl border border-gray-100 dark:border-slate-700 p-3">
+                                    <p className="text-xs text-gray-400">Potongan Aplikasi</p>
+                                    <p className="font-semibold text-red-500">-Rp {formatCurrency(todayRecap.appFee)}</p>
+                                </div>
+                                <div className="rounded-xl border border-gray-100 dark:border-slate-700 p-3">
+                                    <p className="text-xs text-gray-400">Pengeluaran Lain</p>
+                                    <p className="font-semibold text-red-500">-Rp {formatCurrency(todayRecap.expenseRaw)}</p>
+                                </div>
+                                <div className="rounded-xl border border-gray-100 dark:border-slate-700 p-3">
+                                    <p className="text-xs text-gray-400">Sisa Hari Ini</p>
+                                    <p className={`font-semibold ${todayRecap.net >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                        Rp {formatCurrency(todayRecap.net)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 rounded-xl bg-gray-50 dark:bg-slate-700/50 px-3 py-2 text-xs text-gray-500 dark:text-gray-300">
+                                Reset hanya mengosongkan tampilan rekap harian. Data transaksi tetap aman.
+                            </div>
+
+                            <div className="mt-6 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={closeResetModal}
+                                    className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 shadow-sm transition hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200 dark:hover:bg-slate-600"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmResetToday}
+                                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
+                                >
+                                    Reset Rekap
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <ConfirmationModal
                 isOpen={Boolean(deleteTargetId)}

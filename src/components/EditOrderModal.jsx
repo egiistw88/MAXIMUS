@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, MapPin, Navigation2, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { useSettings } from '../context/SettingsContext';
 
 const parseLocalDateTime = (value) => {
     if (!value) return null;
@@ -27,7 +28,9 @@ const formatUtcDateTime = (value) => {
 };
 
 export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
-    const [price, setPrice] = useState('');
+    const { settings } = useSettings();
+    const [grossPrice, setGrossPrice] = useState('');
+    const [appFee, setAppFee] = useState('');
     const [distance, setDistance] = useState('');
     const [origin, setOrigin] = useState('');
     const [destination, setDestination] = useState('');
@@ -38,12 +41,20 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
 
     useEffect(() => {
         if (!isOpen || !order) return;
-        setPrice(order.price?.toString() ?? '');
+        setGrossPrice((order.gross_price ?? order.price)?.toString() ?? '');
+        setAppFee(order.app_fee?.toString() ?? '');
         setDistance(order.distance?.toString() ?? '');
         setOrigin(order.origin ?? '');
         setDestination(order.destination ?? '');
         setCreatedAt(formatLocalDateTime(order.created_at));
     }, [isOpen, order]);
+
+    const grossValue = useMemo(() => parseFloat(grossPrice) || 0, [grossPrice]);
+    const appFeeValue = useMemo(() => parseFloat(appFee) || 0, [appFee]);
+    const distanceValue = useMemo(() => parseFloat(distance) || 0, [distance]);
+    const fuelCost = distanceValue * (settings.fuelEfficiency || 0);
+    const maintenance = settings.maintenanceFee ?? 500;
+    const estimatedNetProfit = grossValue - appFeeValue - fuelCost - maintenance;
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -53,8 +64,11 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
         try {
             const updatedOrder = {
                 ...order,
-                price: price ? parseFloat(price) : 0,
-                distance: distance ? parseFloat(distance) : 0,
+                price: grossValue,
+                gross_price: grossValue,
+                app_fee: appFeeValue,
+                distance: distanceValue,
+                net_profit: estimatedNetProfit,
                 origin: origin.trim(),
                 destination: destination.trim(),
                 created_at: formatUtcDateTime(createdAt)
@@ -104,14 +118,25 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga (Rp)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga Order (Gross)</label>
                                 <input
                                     type="number"
-                                    value={price}
-                                    onChange={(event) => setPrice(event.target.value)}
+                                    value={grossPrice}
+                                    onChange={(event) => setGrossPrice(event.target.value)}
                                     className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
                                     placeholder="Masukkan nominal"
                                     required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Potongan Aplikasi</label>
+                                <input
+                                    type="number"
+                                    value={appFee}
+                                    onChange={(event) => setAppFee(event.target.value)}
+                                    className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
+                                    placeholder="0"
                                 />
                             </div>
 
@@ -125,6 +150,10 @@ export default function EditOrderModal({ isOpen, onClose, order, onSave }) {
                                     className="w-full p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 focus:border-maxim-yellow focus:ring-1 focus:ring-maxim-yellow outline-none text-sm dark:text-gray-100"
                                     placeholder="0"
                                 />
+                            </div>
+
+                            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-3 text-xs text-gray-500 dark:text-gray-400">
+                                Estimasi Bersih: <span className="font-semibold text-gray-700 dark:text-gray-200">Rp {new Intl.NumberFormat('id-ID').format(Math.max(0, estimatedNetProfit))}</span>
                             </div>
 
                             <div>

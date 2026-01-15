@@ -33,8 +33,12 @@ create table orders (
   user_id uuid references auth.users not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   price numeric not null,
+  gross_price numeric not null,
+  app_fee numeric not null,
   distance numeric not null,
-  net_profit numeric not null
+  net_profit numeric not null,
+  origin text,
+  destination text
 );
 
 alter table orders enable row level security;
