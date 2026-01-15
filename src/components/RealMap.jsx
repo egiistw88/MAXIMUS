@@ -256,13 +256,8 @@ export default function RealMap() {
 
     return (
         <div
-            className="z-0"
-            style={{
-                height: 'calc(100vh - 80px)',
-                width: '100%',
-                position: 'relative',
-                zIndex: 0
-            }}
+            className="z-0 relative w-full h-[calc(100dvh-var(--bottom-nav-height))] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]"
+            style={{ zIndex: 0 }}
         >
             <div className="absolute inset-0 z-[1000] pointer-events-none">
                 <StrategyCard recommendation={currentRecommendation} />

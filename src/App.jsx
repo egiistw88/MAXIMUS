@@ -86,7 +86,13 @@ function AppContent({ session, loading }) {
 
     return (
         <BrowserRouter>
-            <div className="min-h-screen bg-maxim-bg text-maxim-dark font-sans pb-20">
+            <div
+                className="min-h-screen bg-maxim-bg text-maxim-dark font-sans"
+                style={{
+                    '--bottom-nav-height': '64px',
+                    paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))'
+                }}
+            >
                 <AnimatedRoutes showToast={showToast} session={session} />
 
                 <BottomNavigation />
