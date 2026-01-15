@@ -401,8 +401,6 @@ export default function Riwayat({ session }) {
                     price: updatedOrder.price,
                     net_profit: updatedOrder.net_profit ?? updatedOrder.price,
                     distance: updatedOrder.distance,
-                    origin: updatedOrder.origin,
-                    destination: updatedOrder.destination,
                     created_at: updatedOrder.created_at
                 })
                 .eq('id', updatedOrder.id)
