@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 
 import { useSettings } from '../context/SettingsContext';
@@ -83,6 +84,7 @@ const RecenterFab = ({ userPos }) => {
 };
 
 export default function RealMap() {
+    const navigate = useNavigate();
     const { settings } = useSettings();
     const [strategicSpots, setStrategicSpots] = useState([]);
     const [currentRecommendation, setCurrentRecommendation] = useState(null);
@@ -254,9 +256,26 @@ export default function RealMap() {
         return () => clearInterval(timer);
     }, [filteredSpots, userPos, currentHour]);
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            navigate(-1);
+        } else {
+            navigate('/');
+        }
+    };
+
     return (
         <div className="relative z-0 w-full h-[calc(100dvh-var(--bottom-nav-height))] pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom))]">
             <div className="absolute inset-0 z-[1000] pointer-events-none">
+                <div className="absolute left-4 top-4 pointer-events-auto">
+                    <button
+                        type="button"
+                        onClick={handleBack}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold text-slate-700 shadow-lg transition hover:bg-white"
+                    >
+                        Kembali
+                    </button>
+                </div>
                 <StrategyCard recommendation={currentRecommendation} />
                 <div className="absolute left-4 right-4 top-20 space-y-2 text-xs text-slate-600">
                     {spotsLoading && (

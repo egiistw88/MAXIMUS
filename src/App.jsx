@@ -8,6 +8,7 @@ import RealMap from './components/RealMap';
 import Riwayat from './pages/Riwayat';
 import ProfileSettings from './components/ProfileSettings';
 import BottomNavigation from './components/BottomNavigation';
+import MapNavigationDrawer from './components/MapNavigationDrawer';
 import PageTransition from './components/PageTransition';
 import ToastContainer from './components/ToastContainer';
 import { ToastProvider, useToast } from './context/ToastContext';
@@ -55,6 +56,42 @@ function AnimatedRoutes({ showToast, session }) {
     );
 }
 
+function AppShell({ showToast, session }) {
+    const location = useLocation();
+    const isMapRoute = location.pathname === '/map';
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    useEffect(() => {
+        setDrawerOpen(false);
+    }, [location.pathname]);
+
+    return (
+        <div
+            className="min-h-screen bg-maxim-bg text-maxim-dark font-sans"
+            style={{
+                '--bottom-nav-height': isMapRoute ? '0px' : '64px',
+                paddingBottom: isMapRoute
+                    ? 'env(safe-area-inset-bottom)'
+                    : 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))'
+            }}
+        >
+            <main className="relative z-0">
+                <AnimatedRoutes showToast={showToast} session={session} />
+            </main>
+
+            {isMapRoute ? (
+                <MapNavigationDrawer
+                    isOpen={drawerOpen}
+                    onToggle={() => setDrawerOpen((prev) => !prev)}
+                    onClose={() => setDrawerOpen(false)}
+                />
+            ) : (
+                <BottomNavigation />
+            )}
+        </div>
+    );
+}
+
 function AppContent({ session, loading }) {
     const { showToast } = useToast();
 
@@ -86,19 +123,7 @@ function AppContent({ session, loading }) {
 
     return (
         <BrowserRouter>
-            <div
-                className="min-h-screen bg-maxim-bg text-maxim-dark font-sans"
-                style={{
-                    '--bottom-nav-height': '64px',
-                    paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))'
-                }}
-            >
-                <main className="relative z-0">
-                    <AnimatedRoutes showToast={showToast} session={session} />
-                </main>
-
-                <BottomNavigation />
-            </div>
+            <AppShell showToast={showToast} session={session} />
         </BrowserRouter>
     );
 }
